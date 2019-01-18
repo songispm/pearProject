@@ -16,7 +16,7 @@
                             v-model="selectedModelKeys"
                             @click="menuModelClick"
                             @openChange="onModelOpenChange"
-                            :style="{ lineHeight: '63px',paddingLeft:'15px' }"
+                            :style="{ lineHeight: '50px',paddingLeft:'15px' }"
                     >
                         <a-menu-item
                                 v-for="(model,index) in menu"
@@ -39,12 +39,13 @@
                         </div>
                     </div>
                 </a-layout-header>
-                <a-layout style="margin-top: 65px;">
+                <a-layout style="margin-top: 50px;">
                     <a-sider
                             mode="inline"
                             breakpoint="md"
                             collapsible
                             v-model="collapsed"
+                            style="width: 60px; min-width: 60px"
                     >
                        <!-- <a-icon
                         class="trigger"
@@ -88,7 +89,7 @@
                     </a-sider>
                     <a-layout
                             class="main-content"
-                            :style="collapsed ? { paddingLeft: '80px'} : { paddingLeft: '256px'}">
+                            :style="collapsed ? { paddingLeft: '60px'} : { paddingLeft: '200px'}">
                         <vue-scroll ref="contentscroll">
                             <a-layout-content>
                                 <transition name="router-fade" mode="out-in">

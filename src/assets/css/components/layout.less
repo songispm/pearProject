@@ -4,7 +4,8 @@
   .ant-layout-header {
     background: #fff;
     padding: 0;
-    line-height: 85px;
+    height: 50px;
+    line-height: 50px;
     position: fixed;
     width: 100%;
     top: 0;
@@ -17,22 +18,23 @@
   }
 
   .logo {
-    height: 32px;
-    padding: 16px;
-    text-align: center;
-    box-sizing: content-box;
+    height: 50px;
+    //padding: 9px;
+    text-align: left;
+    padding-left: 50px;
+    box-sizing: border-box;
     transition: all .2s;
-    width: 224px;
+    width: 200px;
     float: left;
-    line-height: 1.4;
+    line-height: 50px;
     background: initial;
     color: #FFF;
     cursor: pointer;
     .logo-img {
-      width: 40px;
+      width: 36px;
       position: absolute;
-      left: 35px;
-      top: 12px;
+      left: 12px;
+      top: 7px;
       transition: all .2s;
     }
 
@@ -42,8 +44,8 @@
       position: relative;
       .version {
         color: inherit;
-        position: absolute;
-        right: -25px;
+        //position: absolute;
+        //right: -25px;
         font-size: 14px;
       }
     }
@@ -54,7 +56,7 @@
     right: 12px;
     top: 0;
     height: 100%;
-    line-height: 66px;
+    line-height: 50px;
     color: #FFF;
     display: flex;
 
@@ -63,7 +65,7 @@
       //display: inline-block;
       transition: all .2s;
       padding: 0 6px;
-      height: 65px;
+      height: 50px;
 
       .anticon {
         font-size: 16px;
@@ -83,7 +85,7 @@
           .ant-avatar {
             position: absolute;
             left: 12px;
-            top: 18px;
+            top: 10px;
           }
         }
       }
@@ -107,19 +109,24 @@
   .ant-layout-sider {
     z-index: 2;
     overflow: auto;
-    width: 256px !important;
-    max-width: 256px !important;
+    width: 200px !important;
+    max-width: 200px !important;
     height: 100vh;
     position: fixed;
     left: 0;
     box-shadow: 2px 0 8px 0 rgba(29, 35, 41, .05);
 
     &.ant-layout-sider-collapsed {
-      width: 80px !important;
-      max-width: 80px !important;
+      width: 60px !important;
+      max-width: 60px !important;
+
+      .ant-menu-submenu-title{
+        width: 60px!important;
+        padding: 0 22px!important;
+      }
 
       .ant-layout-sider-trigger {
-        width: 80px !important;
+        width: 60px !important;
       }
 
       .logo {
@@ -130,7 +137,7 @@
     }
 
     .ant-layout-sider-trigger {
-      width: 256px !important;
+      width: 200px !important;
     }
 
   }
@@ -148,9 +155,11 @@
 
   .ant-layout-header.collapsed{
     .logo{
-      width: 48px;
+      width: 60px;
+      padding: 0;
+      //box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.1);
       .logo-img{
-        left: 20px;
+        left: 12px;
       }
       .title{
         display: none;
@@ -223,9 +232,11 @@
     }
 
     .logo {
-      background: #002140;
-      border-bottom: 1px solid #002140;
-      box-shadow: 2px 0 6px rgba(0, 21, 41, .35);
+      //background: #002140;
+      //border-bottom: 1px solid #002140;
+      //box-shadow: 2px 0 6px rgba(0, 21, 41, .35);
+      color: #333;
+      //box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.1);
     }
 
     .ant-layout-sider{

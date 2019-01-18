@@ -965,7 +965,7 @@
     }
 
     .info-drawer {
-        top: 116px;
+        top: 101px;
         width: 0 !important;
 
         .ant-drawer-mask {

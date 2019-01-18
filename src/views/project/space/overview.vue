@@ -266,7 +266,7 @@
 
     .project-space-overview {
         .project-navigation {
-            top: 65px;
+            top: 50px;
             z-index: 4;
         }
 
