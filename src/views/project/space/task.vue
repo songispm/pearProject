@@ -34,6 +34,11 @@
                 </ul>
             </section>
             <div class="project-nav-footer">
+                <a class="footer-item"
+                   @click="changeViewMode">
+                    <a-icon type="menu"></a-icon>
+                    <span>{{table_modal ?' 看板视图':' 列表视图'}}</span>
+                </a>
                 <a class="footer-item" :class="{active:slideMenuKey == 'member'}" @click="visibleDraw('member')">
                     <a-icon type="user"></a-icon>
                     <span> {{projectMembers.length}}</span>
@@ -45,7 +50,7 @@
             </div>
         </div>
         <wrapper-content :showHeader="false">
-            <draggable v-model="taskStages"
+            <draggable v-show="!table_modal" v-model="taskStages"
                        :options="{group:'stages',filter:'.undraggables',handle:'.ui-sortable-handle',ghostClass:'stage-ghost',animation: 200,forceFallback:false}"
                        id="board-scrum-stages" class="board-scrum-stages" :move="stageMove" @update="stageSort">
                 <div class="scrum-stage" v-for="(stage,index) in taskStages" :key="index" :id="stage.code"
@@ -299,6 +304,21 @@
                     </header>
                 </div>
             </draggable>
+
+            <div v-show="table_modal" class="container" style="height:100%; padding: 15px 25px 0 25px; overflow: auto">
+                <a-table :columns="columns" bordered :scroll="{ y: 560 }"
+                         :rowKey="record => record.login.uuid"
+                         :dataSource="tableData"
+                         :pagination="false"
+                         :loading="loading"
+                         @change="handleTableChange"
+                >
+                    <!--<template slot="name" slot-scope="name">-->
+                        <!--{{name.first}} {{name.last}}-->
+                    <!--</template>-->
+                </a-table>
+            </div>
+
             <router-view></router-view>
         </wrapper-content>
         <a-modal
@@ -460,6 +480,8 @@
 </template>
 
 <script>
+    import axios from 'axios'
+
     import {mapState} from 'vuex'
     import _ from 'lodash'
     import moment from 'moment'
@@ -488,6 +510,27 @@
         },
         data() {
             return {
+                tableData: [],
+                pagination: {},
+                columns:[{
+                    title: 'Name',
+                    dataIndex: 'name.first',
+                    sorter: true,
+                    width: '20%',
+                    // scopedSlots: { customRender: 'name' },
+                }, {
+                    title: 'Gender',
+                    dataIndex: 'gender',
+                    filters: [
+                        { text: 'Male', value: 'male' },
+                        { text: 'Female', value: 'female' },
+                    ],
+                    width: '20%',
+                }, {
+                    title: 'Email',
+                    dataIndex: 'email',
+                }],
+
                 code: this.$route.params.code,
                 loading: true,
                 project: {},
@@ -535,6 +578,8 @@
                     modalStatus: false,
                     modalTitle: '查看回收站',
                 },
+
+                table_modal:false,
             }
         },
         computed: {
@@ -606,7 +651,40 @@
             this.getProjectMembers();
             this.init();
         },
+        mounted(){
+            this.fetch();
+        },
         methods: {
+            handleTableChange (pagination, filters, sorter) {
+                console.log(pagination);
+                const pager = { ...this.pagination };
+                pager.current = pagination.current;
+                this.pagination = pager;
+                this.fetch({
+                    results: pagination.pageSize,
+                    page: pagination.current,
+                    sortField: sorter.field,
+                    sortOrder: sorter.order,
+                    ...filters,
+                });
+            },
+            fetch (params = {}) {
+                console.log('params:', params);
+                params.results= 10
+                this.loading = true
+                axios.get('https://randomuser.me/api',{
+                    params:params
+                }).then((data) => {
+                    const pagination = { ...this.pagination };
+                    // Read total count from server
+                    // pagination.total = data.totalCount;
+                    pagination.total = 200;
+                    this.loading = false;
+                    this.tableData = data.data.results;
+                    this.pagination = pagination;
+                    console.log(data,this.tableData,11111)
+                });
+            },
             init() {
                 this.getTaskStages();
             },
@@ -886,6 +964,21 @@
                     this.taskStages[stageIndex].fixedCreator = true;
                 }
             },
+
+
+
+            changeViewMode(){
+                if(this.table_modal){
+                    this.table_modal = false;
+                    // this.getTaskType();
+                } else {
+                    this.table_modal = true;
+                    // this.tableDataReload(this.tableSelect)
+                }
+                // this.user_menu_modal = false;
+                // this.menu_modal = false;
+            },
+
 
             visibleDraw(type) {
                 if (type == 'member') {
