@@ -34,11 +34,6 @@
                 </ul>
             </section>
             <div class="project-nav-footer">
-                <a class="footer-item"
-                   @click="changeViewMode">
-                    <a-icon type="menu"></a-icon>
-                    <span>{{table_modal ?' 看板视图':' 列表视图'}}</span>
-                </a>
                 <a class="footer-item" :class="{active:slideMenuKey == 'member'}" @click="visibleDraw('member')">
                     <a-icon type="user"></a-icon>
                     <span> {{projectMembers.length}}</span>
@@ -50,7 +45,7 @@
             </div>
         </div>
         <wrapper-content :showHeader="false">
-            <draggable v-show="!table_modal" v-model="taskStages"
+            <draggable v-model="taskStages"
                        :options="{group:'stages',filter:'.undraggables',handle:'.ui-sortable-handle',ghostClass:'stage-ghost',animation: 200,forceFallback:false}"
                        id="board-scrum-stages" class="board-scrum-stages" :move="stageMove" @update="stageSort">
                 <div class="scrum-stage" v-for="(stage,index) in taskStages" :key="index" :id="stage.code"
@@ -88,12 +83,12 @@
                                     </a-menu-item>
                                     <a-menu-item :key="'setExecutor_' + stage.code + '_' + index">
                                         <a-icon size="14" type="user"></a-icon>
-                                        设置本列所有任务执行者 *
+                                        设置本列所有任务执行者
                                     </a-menu-item>
-                                    <a-menu-item :key="'setEndTime_' + stage.code + '_' + index">
+                                    <!--<a-menu-item :key="'setEndTime_' + stage.code + '_' + index">
                                         <a-icon size="14" type="clock-circle"></a-icon>
                                         设置本列所有任务截止时间 *
-                                    </a-menu-item>
+                                    </a-menu-item>-->
                                     <a-menu-item :key="'recycleBatch_' + stage.code + '_' + index">
                                         <a-icon size="14" type="delete"></a-icon>
                                         本列所有任务移到回收站
@@ -126,12 +121,18 @@
                                                  :id="task.code"
                                                  :key="task.code"
                                                  :class="showTaskPri(task.pri)"
-                                                 v-if="!task.done"
+                                                 v-if="!task.done && task.canRead"
                                                  @click.stop="taskDetail(task.code,index)"
                                             >
                                                 <div class="task-priority bg-priority-0"></div>
-                                                <a class="check-box"
-                                                   @click.stop="taskDone(task.code,index,taskIndex,1)"></a>
+                                                <a-tooltip placement="top">
+                                                    <template slot="title">
+                                                        <span v-if="task.hasUnDone" style="font-size: 12px;">子任务尚未全部完成，无法完成父任务</span>
+                                                    </template>
+                                                    <a class="check-box"
+                                                       :class="{'disabled': task.hasUnDone}"
+                                                       @click.stop="taskDone(task.code,index,taskIndex,1)"></a>
+                                                </a-tooltip>
                                                 <div class="task-content-set open-detail">
                                                     <div class="task-content-wrapper">
                                                         <div class="task-content"> {{ task.name }}</div>
@@ -233,7 +234,7 @@
                                         <template v-for="(task,taskIndex) in stage.tasks">
                                             <li class="task done task-card ui-sortable-handle"
                                                 :key="task.code"
-                                                v-if="task.done"
+                                                v-if="task.done && task.canRead"
                                                 @click.stop="taskDetail(task.code,index)"
                                             >
                                                 <div class="task-priority bg-priority-0"></div>
@@ -264,6 +265,11 @@
                                                 </div>
                                             </li>
                                         </template>
+                                        <li class="task muted" style="margin: 0 10px 8px;"
+                                            v-show="stage.canNotReadCount">
+                                            <span><a-icon type="lock"></a-icon>
+                                                有 {{stage.canNotReadCount}} 个任务被隐藏（因为设置了仅参与者可见）</span>
+                                        </li>
                                     </ul>
                                     <!--添加任务按钮-->
                                     <div class="task-creator-handler-wrap" @click.stop="showTaskCard(index)"
@@ -304,21 +310,6 @@
                     </header>
                 </div>
             </draggable>
-
-            <div v-show="table_modal" class="container" style="height:100%; padding: 15px 25px 0 25px; overflow: auto">
-                <a-table :columns="columns" bordered :scroll="{ y: 560 }"
-                         :rowKey="record => record.login.uuid"
-                         :dataSource="tableData"
-                         :pagination="false"
-                         :loading="loading"
-                         @change="handleTableChange"
-                >
-                    <!--<template slot="name" slot-scope="name">-->
-                        <!--{{name.first}} {{name.last}}-->
-                    <!--</template>-->
-                </a-table>
-            </div>
-
             <router-view></router-view>
         </wrapper-content>
         <a-modal
@@ -473,6 +464,36 @@
         >
             <recycle-bin v-if="recycleModal.modalStatus" :code="code" @update="init"></recycle-bin>
         </a-modal>
+        <a-modal
+                class="invite-project-member"
+                :width="360"
+                v-model="projectMemberModal.modalStatus"
+                :title="projectMemberModal.modalTitle"
+                :footer="null"
+        >
+            <div class="member-list">
+                <a-list
+                        class="project-list"
+                        itemLayout="horizontal"
+                        :loading="loading"
+                        :dataSource="projectMembers"
+                >
+                    <a-list-item slot="renderItem" slot-scope="item">
+                    <span slot="actions">
+                        <a-button size="small" type="dashed" icon="user-add"
+                                  @click="setExecutor(item)"
+                        >设置</a-button>
+                     </span>
+                        <a-list-item-meta
+                                :description="item.email"
+                        >
+                            <span slot="title">{{item.name}}</span>
+                            <a-avatar slot="avatar" icon="user" :src="item.avatar"/>
+                        </a-list-item-meta>
+                    </a-list-item>
+                </a-list>
+            </div>
+        </a-modal>
 
         <invite-project-member v-model="showInviteMember" :project-code="code"
                                v-if="showInviteMember"></invite-project-member>
@@ -480,8 +501,6 @@
 </template>
 
 <script>
-    import axios from 'axios'
-
     import {mapState} from 'vuex'
     import _ from 'lodash'
     import moment from 'moment'
@@ -493,7 +512,7 @@
     import {list as getTaskStages, sort, tasks as getTasks} from "../../../api/taskStages";
     import {read as getProject} from "../../../api/project";
     import {inviteMember, list as getProjectMembers, removeMember} from "../../../api/projectMember";
-    import {save as createTask, taskDone, sort as sortTask, recycleBatch} from "../../../api/task";
+    import {save as createTask, taskDone, sort as sortTask, recycleBatch, batchAssignTask} from "../../../api/task";
     import {save as createState, edit as editStage, del as delStage} from "../../../api/taskStages";
     import {checkResponse} from "../../../assets/js/utils";
     import {formatTaskTime} from "../../../assets/js/dateTime";
@@ -510,27 +529,6 @@
         },
         data() {
             return {
-                tableData: [],
-                pagination: {},
-                columns:[{
-                    title: 'Name',
-                    dataIndex: 'name.first',
-                    sorter: true,
-                    width: '20%',
-                    // scopedSlots: { customRender: 'name' },
-                }, {
-                    title: 'Gender',
-                    dataIndex: 'gender',
-                    filters: [
-                        { text: 'Male', value: 'male' },
-                        { text: 'Female', value: 'female' },
-                    ],
-                    width: '20%',
-                }, {
-                    title: 'Email',
-                    dataIndex: 'email',
-                }],
-
                 code: this.$route.params.code,
                 loading: true,
                 project: {},
@@ -579,7 +577,13 @@
                     modalTitle: '查看回收站',
                 },
 
-                table_modal:false,
+                /*项目成员*/
+                projectMemberModal: {
+                    loading: false,
+                    currentStageIndex: 0,
+                    modalStatus: false,
+                    modalTitle: '设置任务执行者',
+                },
             }
         },
         computed: {
@@ -611,7 +615,7 @@
                 }
             },
             inviteMemberDraw: {
-                handler(newVal, oldVal) {
+                handler(newVal) {
                     if (newVal.visible) {
                         this.slideMenuKey = 'member';
                     } else {
@@ -624,7 +628,7 @@
                 deep: true
             },
             configDraw: {
-                handler(newVal, oldVal) {
+                handler(newVal) {
                     if (newVal.visible) {
                         this.slideMenuKey = 'config';
                     } else {
@@ -638,12 +642,6 @@
                     this.getProjectMembers();
                 }
             },
-            // task: {
-            //     handler(newVal, oldVal) {
-            //         newVal.name = newVal.name.replace(/ +/g, "");
-            //     },
-            //     deep: true
-            // }
         },
         created() {
             this.defaultExecutor = this.userInfo;
@@ -651,40 +649,7 @@
             this.getProjectMembers();
             this.init();
         },
-        mounted(){
-            this.fetch();
-        },
         methods: {
-            handleTableChange (pagination, filters, sorter) {
-                console.log(pagination);
-                const pager = { ...this.pagination };
-                pager.current = pagination.current;
-                this.pagination = pager;
-                this.fetch({
-                    results: pagination.pageSize,
-                    page: pagination.current,
-                    sortField: sorter.field,
-                    sortOrder: sorter.order,
-                    ...filters,
-                });
-            },
-            fetch (params = {}) {
-                console.log('params:', params);
-                params.results= 10
-                this.loading = true
-                axios.get('https://randomuser.me/api',{
-                    params:params
-                }).then((data) => {
-                    const pagination = { ...this.pagination };
-                    // Read total count from server
-                    // pagination.total = data.totalCount;
-                    pagination.total = 200;
-                    this.loading = false;
-                    this.tableData = data.data.results;
-                    this.pagination = pagination;
-                    console.log(data,this.tableData,11111)
-                });
-            },
             init() {
                 this.getTaskStages();
             },
@@ -707,6 +672,13 @@
                     if (this.taskStages) {
                         this.taskStages.forEach((v) => {
                             getTasks({stageCode: v.code}).then((res) => {
+                                let canNotReadCount = 0;
+                                res.data.forEach((task) => {
+                                    if (!task.canRead) {
+                                        canNotReadCount++;
+                                    }
+                                });
+                                v.canNotReadCount = canNotReadCount;
                                 v.tasksLoading = false;
                                 v.tasks = res.data;
                             })
@@ -800,12 +772,16 @@
                 });
             },
             taskDone(taskCode, stageIndex, taskIndex, done) {
+                let task = this.taskStages[stageIndex].tasks[taskIndex];
+                if (task.hasUnDone) {
+                    return false;
+                }
                 taskDone(taskCode, done).then((res) => {
                     const result = checkResponse(res);
                     if (!result) {
                         return false;
                     }
-                    this.taskStages[stageIndex].tasks[taskIndex].done = done;
+                    task.done = done;
                 });
             },
             showInputStrageName() {
@@ -856,7 +832,8 @@
                         this.set_type_endTime_modal = true;
                         break;
                     case 'setExecutor':
-                        this.set_executor_modal = true;
+                        this.projectMemberModal.currentStageIndex = stageIndex;
+                        this.projectMemberModal.modalStatus = true;
                         break;
                     case 'delStage':
                         if (this.taskStages[stageIndex].tasks.length > 0) {
@@ -915,6 +892,36 @@
                     this.stageModal.modalStatus = false;
                 });
             },
+            setExecutor(member) {
+                let stage = this.taskStages[this.projectMemberModal.currentStageIndex];
+                let taskCodes = [];
+                stage.tasks.forEach((v) => {
+                    if (v.canRead) {
+                        taskCodes.push(v.code);
+                    }
+                });
+                if (taskCodes) {
+                    batchAssignTask({taskCodes: JSON.stringify(taskCodes), executorCode: member.code}).then(res => {
+                        this.projectMemberModal.modalStatus = false;
+                        if (!checkResponse(res)) {
+                            return false;
+                        }
+                        getTasks({stageCode: stage.code}).then((res) => {
+                            let canNotReadCount = 0;
+                            res.data.forEach((task) => {
+                                if (!task.canRead) {
+                                    canNotReadCount++;
+                                }
+                            });
+                            stage.canNotReadCount = canNotReadCount;
+                            stage.tasksLoading = false;
+                            stage.tasks = res.data;
+                        });
+                    });
+                }else{
+                    this.projectMemberModal.modalStatus = false;
+                }
+            },
             showTaskPri(pri) {
                 return {
                     'warning': pri == 1,
@@ -964,21 +971,6 @@
                     this.taskStages[stageIndex].fixedCreator = true;
                 }
             },
-
-
-
-            changeViewMode(){
-                if(this.table_modal){
-                    this.table_modal = false;
-                    // this.getTaskType();
-                } else {
-                    this.table_modal = true;
-                    // this.tableDataReload(this.tableSelect)
-                }
-                // this.user_menu_modal = false;
-                // this.menu_modal = false;
-            },
-
 
             visibleDraw(type) {
                 if (type == 'member') {
@@ -1058,7 +1050,7 @@
     }
 
     .info-drawer {
-        top: 101px;
+        top: 116px;
         width: 0 !important;
 
         .ant-drawer-mask {
