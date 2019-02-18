@@ -343,6 +343,51 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="component-mount task-tag">
+                                        <div class="field">
+                                            <div class="field-left">
+                                                <a-icon type="tag"/>
+                                                <span class="field-name">标签</span>
+                                            </div>
+                                            <div class="field-right">
+                                                <div class="inline-block">
+                                                    <a-tag :color="tag.tag.color" v-for="(tag,index) in task.tags"
+                                                           :key="index">{{tag.tag.name}}
+                                                    </a-tag>
+                                                </div>
+                                                <a-dropdown
+                                                        :trigger="['click']"
+                                                        v-model="visibleTaskTagMenu"
+                                                        :disabled="!!task.deleted"
+                                                        placement="bottomCenter"
+                                                >
+                                                    <a-tooltip :mouseEnterDelay="0.5" v-if="!task.deleted">
+                                                        <template slot="title">
+                                                            <span>添加标签</span>
+                                                        </template>
+                                                        <div class="inline-block">
+                                                            <a-icon class="member-item invite" type="plus-circle"
+                                                                    theme="twoTone"/>
+                                                        </div>
+                                                    </a-tooltip>
+                                                    <div class="inline-block">
+                                                        <a-icon class="member-item invite" type="plus-circle"
+                                                                theme="twoTone"/>
+                                                    </div>
+                                                    <div slot="overlay">
+                                                        <task-tag-menu
+                                                                v-if="visibleTaskTagMenu"
+                                                                :projectCode="projectCodeCurrent"
+                                                                :taskCode="code"
+                                                                @change="taskTagChange"
+                                                                @update="taskTagUpdate"
+                                                                @delete="taskTagDelete"
+                                                        ></task-tag-menu>
+                                                    </div>
+                                                </a-dropdown>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="component-mount">
                                         <div class="field">
                                             <div class="field-left">
@@ -701,6 +746,7 @@
     import {del as delSourceLink} from "@/api/sourceLink";
     import {list as getTaskMembers} from "@/api/taskMember";
     import taskMemberMenu from "@/components/project/taskMemberMenu"
+    import taskTagMenu from "@/components/project/taskTagMenu"
     import projectMemberMenu from "@/components/project/projectMemberMenu"
     import inviteProjectMember from '@/components/project/inviteProjectMember'
     import {getStore} from "@/assets/js/storage";
@@ -711,11 +757,19 @@
     import {checkResponse} from "../../assets/js/utils";
     import {setPrivate, taskSources} from "../../api/task";
 
+    let tokenList = getStore('tokenList', true);
+    let authorization = '';
+    if (tokenList) {
+        let accessToken = tokenList.accessToken;
+        let tokenType = tokenList.tokenType;
+        authorization = `${tokenType} ${accessToken}`;
+    }
     export default {
         name: "task-detail",
         components: {
             editor,
             taskMemberMenu,
+            taskTagMenu,
             projectMemberMenu,
             inviteProjectMember
         },
@@ -748,6 +802,8 @@
 
                 /*成员菜单*/
                 visibleTaskMemberMenu: false,
+                /*任务标签*/
+                visibleTaskTagMenu: false,
                 visibleProjectMemberMenu: false,
                 showInviteMember: false,
 
@@ -765,7 +821,7 @@
                 editorConfig: {
                     uploadImgServer: getApiUrl('project/index/uploadImg'),
                     uploadImgHeaders: {
-                        token: getStore('token')
+                        Authorization: authorization
                     },
                     menus: [
                         'head',	// 标题
@@ -907,6 +963,7 @@
                 // this.$router.push(`/project/space/task/${this.task.project_code}`);
             },
             clearMemberMenu() {
+                this.visibleTaskTagMenu = false;
                 this.visibleTaskMemberMenu = false;
                 this.visibleProjectMemberMenu = false;
                 this.showChildTask = false;
@@ -1262,6 +1319,29 @@
                     this.childTaskList = res.data.list;
                 })
             },
+            taskTagChange(tag) {
+                const index = this.task.tags.findIndex(item => item.tag_code == tag.code);
+                if (index !== -1) {
+                    this.task.tags.splice(index, 1);
+                } else {
+                    this.task.tags.push({
+                        tag_code: tag.code,
+                        tag: tag
+                    });
+                }
+            },
+            taskTagUpdate(tag) {
+                const index = this.task.tags.findIndex(item => item.tag_code == tag.code);
+                if (index !== -1) {
+                    this.task.tags[index].tag = tag;
+                }
+            },
+            taskTagDelete(tag) {
+                const index = this.task.tags.findIndex(item => item.tag_code == tag.code);
+                if (index !== -1) {
+                    this.task.tags.splice(index, 1);
+                }
+            },
             updateChildExecutor(member) {
                 this.visibleChildTaskMemberMenu = false;
                 this.childExecutor = member;
@@ -1302,6 +1382,12 @@
         justify-content: flex-start;
     }
 
+    .task-tag {
+        .ant-tag {
+            margin-bottom: 6px;
+        }
+    }
+
     .task-detail {
         background: #FFF;
         display: -webkit-box;
@@ -1337,6 +1423,7 @@
 
                     a {
                         color: inherit;
+
                         &:hover {
                             color: #40a9ff;
                         }
@@ -1465,6 +1552,10 @@
                                     .field-right {
                                         cursor: pointer;
                                         max-width: calc(100% - 132px);
+
+                                        .inline-block {
+                                            display: inline-block;
+                                        }
 
                                         &.width-block {
                                             width: 100%;
