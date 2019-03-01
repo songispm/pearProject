@@ -232,8 +232,9 @@
                                                 <a-button type="default" size="large" class="middle-btn"
                                                           @click.stop="showTaskCard(index,false)">取消
                                                 </a-button>
-                                                <a-button :loading="createTaskLoading" type="primary" size="large"
-                                                          class="middle-btn"
+                                                <a-button :loading="createTaskLoading" :disabled="!task.name"
+                                                          type="primary" size="large"
+                                                          class="middle-btn" :class="{'disabled-btn':!task.name}"
                                                           @click.stop="createTask(stage.code,index)">创建
                                                 </a-button>
                                             </div>
@@ -804,7 +805,7 @@
             },
             //准备添加任务
             createTask(stageCode, stageIndex) {
-                if (this.task.name === '') {
+                if (!this.task.name) {
                     this.$message.warning('任务内容不能为空', 2);
                     return false
                 }
