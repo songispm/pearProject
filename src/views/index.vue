@@ -268,10 +268,12 @@
                             v.children.forEach(function (v2) {
                                 if ('/' + v2.fullUrl == path) {
                                     that.selectedKeys.push(v2.id.toString());
-                                    if (!that.collapsed) {
-                                        that.openKeys.push(v2.pid.toString());
-                                    } else {
-                                        that.openKeysTemp = [v2.pid.toString()];
+                                    if(that.openKeys.indexOf(v2.pid.toString())==-1){
+                                        if (!that.collapsed) {
+                                            that.openKeys.push(v2.pid.toString());
+                                        } else {
+                                            that.openKeysTemp.push(v2.pid.toString());
+                                        }
                                     }
                                 }
                             })
@@ -285,25 +287,31 @@
             menuClick(event, menu) {
                 //点击左侧导航跳转页面
                 let that = this;
+                console.log(event.key,menu,11)
+
                 let openKeys = [];
                 if (!this.openKeys.length) {
                     openKeys = [menu.id.toString()];
                 } else {
                     openKeys = JSON.parse(JSON.stringify(that.openKeys));
                 }
+
                 that.menus.forEach(function (v) {
-                    if (v.id == openKeys) {
+                    console.log(event.key,v,222)
+                    if (openKeys.indexOf(v.id)!=-1) {
                         let turnPath = '/';
                         if (v.children) {
                             v.children.forEach(function (v2) {
                                 if (v2.id == event.key) {
                                     turnPath += v2.fullUrl;
+                                    that.$router.push(turnPath);
                                 }
                             })
                         } else {
                             turnPath += v.fullUrl;
+                            that.$router.push(turnPath);
                         }
-                        that.$router.push(turnPath);
+                        console.log(turnPath,5555)
                     }
                 });
             },
