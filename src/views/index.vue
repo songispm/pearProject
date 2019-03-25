@@ -16,7 +16,7 @@
                             v-model="selectedModelKeys"
                             @click="menuModelClick"
                             @openChange="onModelOpenChange"
-                            :style="{ lineHeight: '63px',paddingLeft:'15px' }"
+                            :style="{ lineHeight: '50px',paddingLeft:'15px' }"
                     >
                         <a-menu-item
                                 v-for="(model,index) in menu"
@@ -45,12 +45,13 @@
                         </div>
                     </div>
                 </a-layout-header>
-                <a-layout style="padding-top: 65px;">
+                <a-layout style="padding-top: 50px;">
                     <a-sider
                             mode="inline"
                             breakpoint="md"
                             collapsible
                             v-model="collapsed"
+                            style="width: 60px; min-width: 60px"
                     >
                         <!-- <a-icon
                          class="trigger"
@@ -94,7 +95,7 @@
                     </a-sider>
                     <a-layout
                             class="main-content"
-                            :style="collapsed ? { paddingLeft: '80px'} : { paddingLeft: '256px'}">
+                            :style="collapsed ? { paddingLeft: '60px'} : { paddingLeft: '200px'}">
                         <!--<vue-scroll ref="contentscroll">-->
                         <a-layout-content>
                             <transition name="router-fade" mode="out-in">
@@ -219,7 +220,7 @@
                 that.breadCrumbInfo = [];
                 that.breadCrumbInfo.push({title: info.title, 'path': '/' + info.fullUrl});
                 if (!info.is_inner) {
-                    that.openKeys = [];
+                    // that.openKeys = [];
                     that.selectedKeys = [];
                 }
                 //这里有点问题
@@ -329,19 +330,20 @@
             onModelOpenChange(openKeys) {
             },
             onOpenChange(openKeys) {
-                let that = this;
-                const latestOpenKey = openKeys.find(key => this.openKeys.indexOf(key) === -1);
-                let hasOpenKey = false;
-                this.menus.forEach(function (v, k) {
-                    if (v.id == latestOpenKey) {
-                        that.openKeys = latestOpenKey ? [latestOpenKey] : [];
-                        hasOpenKey = true;
-
-                    }
-                });
-                if (!hasOpenKey) {
-                    that.openKeys = openKeys
-                }
+                // let that = this;
+                // const latestOpenKey = openKeys.find(key => this.openKeys.indexOf(key) === -1);
+                // let hasOpenKey = false;
+                // this.menus.forEach(function (v, k) {
+                //     if (v.id == latestOpenKey) {
+                //         that.openKeys = latestOpenKey ? [latestOpenKey] : [];
+                //         hasOpenKey = true;
+                //
+                //     }
+                // });
+                // if (!hasOpenKey) {
+                //     that.openKeys = openKeys
+                // }
+                this.openKeys = openKeys;
             },
         },
     }
