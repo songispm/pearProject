@@ -1,11 +1,11 @@
-<!--suppress ALL    -->
+<!--suppress ALL-->
 <template>
     <div class="index">
         <a-spin :spinning="windowLoading">
             <a-layout id="layout" :class="layoutClass">
                 <a-layout-header :class="{'collapsed':collapsed}">
                     <div class="logo" @click="()=>{this.$router.push(config.HOME_PAGE)}">
-                        <img class="logo-img" src="../assets/image/common/logo3.png" alt="">
+                        <img class="logo-img" src="../assets/image/common/logo.png" alt="">
                         <span class="title" v-if="system">
                             {{system.app_name}}
                              <span class="version">{{system.app_version}}</span>
@@ -16,7 +16,7 @@
                             v-model="selectedModelKeys"
                             @click="menuModelClick"
                             @openChange="onModelOpenChange"
-                            :style="{ lineHeight: '50px',paddingLeft:'15px' }"
+                            :style="{ lineHeight: '63px',paddingLeft:'15px' }"
                     >
                         <a-menu-item
                                 v-for="(model,index) in menu"
@@ -29,7 +29,8 @@
                     </a-menu>
                     <div class="right-menu">
                         <div class="m-r-lg" v-if="config.WS_URI">
-                            <a-badge title="当前在线" :count="online" showZero :numberStyle="{backgroundColor: '#52c41a'} " :offset="[10,0]">
+                            <a-badge title="当前在线" :count="online" showZero :numberStyle="{backgroundColor: '#52c41a'} "
+                                     :offset="[10,0]">
                                 <a-icon type="team"/>
                             </a-badge>
                         </div>
@@ -44,13 +45,12 @@
                         </div>
                     </div>
                 </a-layout-header>
-                <a-layout style="padding-top: 50px;">
+                <a-layout style="padding-top: 65px;">
                     <a-sider
                             mode="inline"
                             breakpoint="md"
                             collapsible
                             v-model="collapsed"
-                            style="width: 60px; min-width: 60px"
                     >
                         <!-- <a-icon
                          class="trigger"
@@ -62,7 +62,7 @@
                                 :key="menu.id.toString()"
                                 :openKeys="openKeys"
                                 v-model="selectedKeys"
-                                @click="menuClick"
+                                @click="menuClick($event, menu)"
                                 @openChange="onOpenChange"
                                 mode="inline">
                             <a-menu-item
@@ -94,7 +94,7 @@
                     </a-sider>
                     <a-layout
                             class="main-content"
-                            :style="collapsed ? { paddingLeft: '60px'} : { paddingLeft: '200px'}">
+                            :style="collapsed ? { paddingLeft: '80px'} : { paddingLeft: '256px'}">
                         <!--<vue-scroll ref="contentscroll">-->
                         <a-layout-content>
                             <transition name="router-fade" mode="out-in">
@@ -219,7 +219,7 @@
                 that.breadCrumbInfo = [];
                 that.breadCrumbInfo.push({title: info.title, 'path': '/' + info.fullUrl});
                 if (!info.is_inner) {
-                    // that.openKeys = [];
+                    that.openKeys = [];
                     that.selectedKeys = [];
                 }
                 //这里有点问题
@@ -267,12 +267,10 @@
                             v.children.forEach(function (v2) {
                                 if ('/' + v2.fullUrl == path) {
                                     that.selectedKeys.push(v2.id.toString());
-                                    if(that.openKeys.indexOf(v2.pid.toString())==-1){
-                                        if (!that.collapsed) {
-                                            that.openKeys.push(v2.pid.toString());
-                                        } else {
-                                            that.openKeysTemp.push(v2.pid.toString());
-                                        }
+                                    if (!that.collapsed) {
+                                        that.openKeys.push(v2.pid.toString());
+                                    } else {
+                                        that.openKeysTemp = [v2.pid.toString()];
                                     }
                                 }
                             })
@@ -283,27 +281,28 @@
                 });
                 that.$store.dispatch('setBreadCrumbInfo', that.breadCrumbInfo);
             },
-            menuClick(event) {
+            menuClick(event, menu) {
                 //点击左侧导航跳转页面
                 let that = this;
-                console.log(event.key,11)
-
+                let openKeys = [];
+                if (!this.openKeys.length) {
+                    openKeys = [menu.id.toString()];
+                } else {
+                    openKeys = JSON.parse(JSON.stringify(that.openKeys));
+                }
                 that.menus.forEach(function (v) {
-                    console.log(event.key,v,222)
-                    if (that.openKeys.indexOf(v.id)!=-1) {
+                    if (v.id == openKeys) {
                         let turnPath = '/';
                         if (v.children) {
                             v.children.forEach(function (v2) {
                                 if (v2.id == event.key) {
                                     turnPath += v2.fullUrl;
-                                    that.$router.push(turnPath);
                                 }
                             })
                         } else {
                             turnPath += v.fullUrl;
-                            that.$router.push(turnPath);
                         }
-                        console.log(turnPath,5555)
+                        that.$router.push(turnPath);
                     }
                 });
             },
@@ -330,20 +329,19 @@
             onModelOpenChange(openKeys) {
             },
             onOpenChange(openKeys) {
-                // let that = this;
-                // const latestOpenKey = openKeys.find(key => this.openKeys.indexOf(key) === -1);
-                // let hasOpenKey = false;
-                // this.menus.forEach(function (v, k) {
-                //     if (v.id == latestOpenKey) {
-                //         that.openKeys = latestOpenKey ? [latestOpenKey] : [];
-                //         hasOpenKey = true;
-                //
-                //     }
-                // });
-                // if (!hasOpenKey) {
-                //     that.openKeys = openKeys
-                // }
-                this.openKeys = openKeys;
+                let that = this;
+                const latestOpenKey = openKeys.find(key => this.openKeys.indexOf(key) === -1);
+                let hasOpenKey = false;
+                this.menus.forEach(function (v, k) {
+                    if (v.id == latestOpenKey) {
+                        that.openKeys = latestOpenKey ? [latestOpenKey] : [];
+                        hasOpenKey = true;
+
+                    }
+                });
+                if (!hasOpenKey) {
+                    that.openKeys = openKeys
+                }
             },
         },
     }
