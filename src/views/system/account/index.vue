@@ -218,11 +218,11 @@
                     }
                 } else if (action == 'status') {
                     const status = record.status;
-                    status ? forbid(record.id).then(res=>{
+                    status ? forbid(record.code).then(res=>{
                         if (checkResponse(res)) {
                             record.status = Number(!status);
                         }
-                    }) : resume(record.id).then(res=>{
+                    }) : resume(record.code).then(res=>{
                         if (checkResponse(res)) {
                             record.status = Number(!status);
                         }
@@ -256,9 +256,9 @@
                 let app = this;
                 app.actionInfo.confirmLoading = true;
                 let obj = app.form.getFieldsValue();
-                if (app.newData.id) {
+                if (app.newData.code) {
                     //编辑
-                    obj.id = app.newData.id;
+                    obj.code = app.newData.code;
                 } else {
                     //新增
                     Object.assign(obj, app.newData);
@@ -268,7 +268,7 @@
                     if (!checkResponse(res)) {
                         return;
                     }
-                    if (app.newData.id) {
+                    if (app.newData.code) {
                         app.newData.email = obj.email;
                         app.newData.name = obj.name;
                         app.newData.mobile = obj.mobile;
