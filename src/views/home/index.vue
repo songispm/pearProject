@@ -12,7 +12,9 @@
                     </div>
                     <div class="user-info">
                         <div class="title">{{helloTime}}{{ userInfo.name }}，祝你开心每一天！</div>
-                        <div class="team muted" v-if="userInfo.position">{{userInfo.position}} | {{ userInfo.department }}</div>
+                        <div class="team muted" v-if="userInfo.position">{{userInfo.position}}
+                            <template v-if="userInfo.department"> | {{ userInfo.department }}</template>
+                        </div>
                     </div>
                 </div>
                 <div class="right-content">
@@ -216,6 +218,7 @@
         computed: {
             ...mapState({
                 userInfo: state => state.userInfo,
+                socketAction: state => state.socketAction,
             }),
             helloTime() {
                 return showHelloTime()
@@ -225,21 +228,31 @@
             this.getYiYan();
             this.init();
         },
+        watch:{
+            socketAction(val) {
+                console.log(val);
+                if (val.action === 'organization:task') {
+                    this.init(false, false);
+                }
+            },
+        },
         methods: {
-            init(reset = true) {
+            init(reset = true, loading = true) {
                 if (reset) {
                     this.projectList = [];
                     this.pagination.page = 1;
                     this.pagination.pageSize = 9;
                 }
-                this.getProjectList();
+                this.getProjectList(loading);
                 this.getTasks();
                 this.getTaskLog();
                 this.getAccountList();
 
             },
-            getProjectList() {
-                this.loading = true;
+            getProjectList(loading) {
+                if (loading) {
+                    this.loading = true;
+                }
                 getProjectList(this.requestData).then(res => {
                     this.projectList = res.data.list;
                     this.projectTotal = res.data.total;

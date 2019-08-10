@@ -67,7 +67,10 @@
                     <a-list-item-meta
                             :description="item.description"
                     >
-                        <router-link slot="title" :to="'/project/space/task/' + item.code">{{item.name}}</router-link>
+                        <div slot="title">
+                            <router-link :to="'/project/space/task/' + item.code">{{item.name}}</router-link>
+                            <a-tag color="green" class="m-l" v-show="!item.private">公开</a-tag>
+                        </div>
                         <a-avatar slot="avatar" icon="user" :src="item.cover"/>
                     </a-list-item-meta>
                     <div class="other-info muted">
@@ -88,6 +91,7 @@
             </a-list>
         </wrapper-content>
         <a-modal
+                destroyOnClose
                 :width="360"
                 v-model="actionInfo.modalStatus"
                 :title="actionInfo.modalTitle"
@@ -143,6 +147,7 @@
             </a-form>
         </a-modal>
         <a-modal
+                destroyOnClose
                 class="project-config-modal"
                 :width="800"
                 v-model="projectModal.modalStatus"

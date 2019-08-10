@@ -1,6 +1,10 @@
 <template>
     <div class="main">
+        <a-spin class="text-center" :spinning="oauthLoading">
+            <span v-show="oauthLoading">正在登陆，请稍后...</span>
+        </a-spin>
         <a-form
+                v-show="!oauthLoading"
                 class="user-layout-login"
                 ref="formLogin"
                 id="formLogin"
@@ -13,7 +17,7 @@
             >
                 <a-tab-pane key="tab1" tab="账号密码登录">
                     <a-form-item>
-                        <a-input size="large" type="text" placeholder="帐户名或邮箱地址 / 123456"
+                        <a-input size="large" type="text" placeholder="帐户名或邮箱地址"
                                  v-decorator="[
                                 'account',
                                 {rules: [{ required: true, message: '请输入帐户名或邮箱地址' },{ validator: this.handleUsernameOrEmail }], validateTrigger: 'blur'}
@@ -24,7 +28,7 @@
 
                     <a-form-item
                     >
-                        <a-input size="large" type="password" autocomplete="false" placeholder="密码 / 123456"
+                        <a-input size="large" type="password" autocomplete="false" placeholder="密码"
                                  v-decorator="[
                                 'password',
                                 {rules: [{ required: true, message: '请输入密码' }], validateTrigger: 'blur'}
@@ -76,6 +80,7 @@
                 <a
                         class="forge-password"
                         style="float: right;"
+                        @click="routerLink('/member/forgot')"
                 >忘记密码
                 </a>
             </a-form-item>
@@ -95,7 +100,13 @@
 
             <div class="user-login-other">
                 <span>其他登录方式</span>
-                <a>
+                <a-tooltip :mouseEnterDelay="0.3"
+                           title="现已支持">
+                    <a @click="dingTalkOauth">
+                        <a-icon class="item-icon" type="dingding"/>
+                    </a>
+                </a-tooltip>
+                <!--<a>
                     <a-icon class="item-icon" type="alipay-circle"></a-icon>
                 </a>
                 <a>
@@ -103,7 +114,7 @@
                 </a>
                 <a>
                     <a-icon class="item-icon" type="weibo-circle"></a-icon>
-                </a>
+                </a>-->
                 <router-link class="register" :to="{ name: 'register' }">注册账户</router-link>
             </div>
         </a-form>
@@ -112,6 +123,7 @@
 
 <script>
     import md5 from 'md5'
+    import * as dd from 'dingtalk-jsapi';
     import {mapActions} from 'vuex'
     import {mapState} from 'vuex'
     import {Login, getCaptcha} from '@/api/user'
@@ -121,6 +133,9 @@
     import {getStore} from '@/assets/js/storage'
     import {checkInstall} from "../../api/common/common";
     import {setStore} from "../../assets/js/storage";
+    import {_checkLogin} from "../../api/user";
+    import {dingTalkLoginByCode, dingTalkOauth} from "../../api/oauth";
+    import {notice} from "../../assets/js/notice";
 
     export default {
         components: {},
@@ -128,6 +143,7 @@
             return {
                 customActiveKey: 'tab1',
                 loginBtn: false,
+                oauthLoading: false,
                 // login type: 0 email, 1 account, 2 telephone
                 loginType: 0,
                 requiredTwoStepCaptcha: false,
@@ -151,8 +167,16 @@
                 system: state => state.system,
             })
         },
-        created() {
+        mounted() {
             this.checkInstall();
+            if (this.$route.query.logged) {
+                this.oauthLoading = true;
+                this.checkLogin();
+            }
+            if (this.$route.query.message) {
+                notice({title: this.$route.query.message}, 'notice');
+                // notice(this.$route.query.message);
+            }
         },
         methods: {
             ...mapActions(['Login', 'Logout']),
@@ -163,7 +187,10 @@
                         return false;
                     }
                     info().then(res => {
-                        this.$store.dispatch('setSystem', res.data);
+                        if (checkResponse(res)) {
+                            this.$store.dispatch('setSystem', res.data);
+                            this.dingTalkLogin();
+                        }
                     });
                 });
             },
@@ -211,25 +238,14 @@
                 if (!flag) return;
 
                 app.loginBtn = true;
-                console.log(loginParams);
                 loginParams.clientid = getStore('client_id');
                 Login(loginParams).then(res => {
                     if (checkResponse(res)) {
                         loginParams.token = res.token;
-                        const obj = {
-                            userInfo: res.data.member,
-                            tokenList: res.data.tokenList
-                        };
-                        app.$store.dispatch('SET_LOGGED', obj);
-                        app.$store.dispatch('setOrganizationList', res.data.organizationList);
-                        app.$store.dispatch('setCurrentOrganization', res.data.organizationList[0]);
-                        app.$store.dispatch('GET_MENU').then(() => {
-                            app.loginBtn = false;
-                            app.loginSuccess(res);
-                        });
+                        this.dealDataBeforeLogin(res);
                     }
                     this.loginBtn = false
-                }).catch(res => {
+                }).catch(() => {
                     this.loginBtn = false
                 });
             },
@@ -305,9 +321,59 @@
                         this.$notification.success({
                             message: '欢迎',
                             description: `${res.data.member.name}，${timeFix()}，欢迎回来`,
-                        })
+                        });
+                        this.oauthLoading = false;
                     }
                 }, 500);
+            },
+            dingTalkOauth() {
+                let url = dingTalkOauth() + '?redirect=' + this.$route.query.redirect;
+                let redirect = this.$route.query.redirect;
+                if (redirect) {
+                    url += '?redirect=' + redirect;
+                }
+                location.href = url;
+            },
+            dingTalkLogin() {
+                let app = this;
+                dd.ready(function () {
+                    // dd.ready参数为回调函数，在环境准备就绪时触发，jsapi的调用需要保证在该回调函数触发后调用，否则无效。
+                    dd.runtime.permission.requestAuthCode({
+                        corpId: "ding42ccb1a1923b200f35c2f4657eb6378f",
+                        onSuccess: function (result) {
+                            app.oauthLoading = true;
+                            dingTalkLoginByCode({code: result.code}).then(res => {
+                                if (checkResponse(res)) {
+                                    app.dealDataBeforeLogin(res);
+                                }
+                            });
+                        }
+                    });
+                });
+            },
+            checkLogin() {
+                _checkLogin().then(res => {
+                    this.dealDataBeforeLogin(res);
+                });
+            },
+            dealDataBeforeLogin(res) {
+                let app = this;
+                if (res.data) {
+                    const obj = {
+                        userInfo: res.data.member,
+                        tokenList: res.data.tokenList
+                    };
+                    app.$store.dispatch('SET_LOGGED', obj);
+                    app.$store.dispatch('setOrganizationList', res.data.organizationList);
+                    app.$store.dispatch('setCurrentOrganization', res.data.organizationList[0]);
+                    app.$store.dispatch('GET_MENU').then(() => {
+                        app.loginSuccess(res);
+                    });
+                } else {
+                    app.oauthLoading = false;
+                    app.$store.dispatch('SET_LOGOUT');
+                    // app.$router.replace('/login?redirect=' + this.$router.currentRoute.fullPath);
+                }
             },
             requestFailed(err) {
                 this.$notification['error']({

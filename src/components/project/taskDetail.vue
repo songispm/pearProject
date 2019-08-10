@@ -222,7 +222,49 @@
                                                 <a-icon type="calendar"/>
                                                 <span class="field-name">时间</span>
                                             </div>
-                                            <div class="field-right">
+                                            <div class="field-right field-date">
+                                                <template v-if="task.openBeginTime">
+                                                    <a-dropdown :trigger="['click']" v-model="showBeginTime"
+                                                                :disabled="!!task.deleted">
+                                                        <a-tooltip :mouseEnterDelay="0.5" v-if="!task.deleted">
+                                                            <template slot="title">
+                                                                <span>点击设置开始时间</span>
+                                                            </template>
+                                                            <div class="field-flex">
+                                                                <a class="muted name" style="margin: 0">
+                                                                    <template v-if="!task.setBeginTime">设置开始时间
+                                                                    </template>
+                                                                    <template v-else>{{task.begin_time_format}}
+                                                                    </template>
+                                                                </a>
+                                                            </div>
+                                                        </a-tooltip>
+                                                        <div class="field-flex" v-else>
+                                                            <a class="muted name" style="margin: 0">
+                                                                <template v-if="!task.setBeginTime">设置开始时间</template>
+                                                                <template v-else>{{task.begin_time_format}}</template>
+                                                            </a>
+                                                        </div>
+                                                        <div slot="overlay">
+                                                            <a-date-picker
+                                                                    v-model="task.begin_time"
+                                                                    size="small"
+                                                                    format="MM月DD日 HH:mm"
+                                                                    showTime
+                                                                    allowClear
+                                                                    :showToday="false"
+                                                                    :open="showBeginTime"
+                                                                    @ok="doBeginTime(true)"
+                                                            >
+                                                                <template slot="renderExtraFooter">
+                                                                    <a style="position: absolute;" size="small"
+                                                                       @click="doBeginTime(false)">清除</a>
+                                                                </template>
+                                                            </a-date-picker>
+                                                        </div>
+                                                    </a-dropdown>
+                                                    <span class="m-l-sm m-r-sm">-</span>
+                                                </template>
                                                 <a-dropdown :trigger="['click']" v-model="showEndTime"
                                                             :disabled="!!task.deleted">
                                                     <a-tooltip :mouseEnterDelay="0.5" v-if="!task.deleted">
@@ -419,12 +461,19 @@
                                                                             <span v-else-if="childTask.hasUnDone"
                                                                                   style="font-size: 12px;">子任务尚未全部完成，无法完成父任务</span>
                                                                         </template>
-                                                                        <a class="task-item check-box"
+                                                                        <div class="check-box-wrapper task-item"
+                                                                             @click.stop="()=>{if(task.deleted || childTask.parentDone || childTask.hasUnDone) return false;taskDone(childTask.code,!childTask.done,index,'child')}">
+                                                                            <a-icon class="check-box"
+                                                                                    :class="{'disabled': task.deleted || childTask.parentDone || childTask.hasUnDone}"
+                                                                                    :type="childTask.done ? 'check-square' : 'border'"
+                                                                                    :style="{fontSize:'16px'}"/>
+                                                                        </div>
+                                                                        <!--<a class="task-item check-box"
                                                                            :class="{'disabled': task.deleted || childTask.parentDone || childTask.hasUnDone}"
                                                                            @click="()=>{if(task.deleted || childTask.parentDone || childTask.hasUnDone) return false;taskDone(childTask.code,!childTask.done,index,'child')}">
                                                                             <a-icon type="check"
                                                                                     v-show="childTask.done"/>
-                                                                        </a>
+                                                                        </a>-->
                                                                     </a-tooltip>
                                                                     <a-tooltip :mouseEnterDelay="0.5">
                                                                         <template slot="title">
@@ -541,6 +590,74 @@
                                     </div>
                                     <div class="component-mount">
                                         <div class="field">
+                                            <div class="field-left" style="width: 100%">
+                                                <a-icon type="clock-circle"/>
+                                                <span class="field-name">工时
+                                                    <span v-show="workTimeList.length"> · 实际工时 {{workTimeTotal}} 小时，工时记录 {{workTimeList.length}} 条，预估工时 {{task.work_time}} 小时   <a
+                                                            class="muted m-l-sm" @click="doPlainWorkTime">
+                                                                    <a-icon class="task-item" type="edit"/>
+                                                                </a>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="component-mount">
+                                        <div class="field">
+                                            <div class="block-field width-block">
+                                                <div class="task-child">
+                                                    <div class="task-list" v-show="workTimeList.length">
+                                                        <div
+                                                                v-for="(workTime, index) in workTimeList"
+                                                                :key="workTime.code">
+                                                            <div class="list-item task m-l-xs">
+                                                                <div class="task-item task-title hover-none">
+                                                                    <div class="title-text"
+                                                                    >
+                                                                        <a-tooltip :mouseEnterDelay="0.5">
+                                                                            <template slot="title">
+                                                                                <span v-if="workTime.member">{{workTime.member.name}}</span>
+                                                                                <span v-else>待认领</span>
+                                                                            </template>
+                                                                            <a-avatar
+                                                                                    class="task-item"
+                                                                                    size="small"
+                                                                                    icon="user"
+                                                                                    :src="workTime.member.avatar"
+                                                                            ></a-avatar>
+                                                                        </a-tooltip>
+                                                                        {{workTime.member.name}}
+                                                                        {{moment(workTime.begin_time).format('MM月DD日 HH:mm')}}开始 工时为
+                                                                        {{workTime.num}} 小时
+                                                                        <div class="muted"
+                                                                             v-show="workTime.content"
+                                                                             style="padding-left: 40px;margin-top: 6px;">
+                                                                            {{workTime.content}}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <a class="muted" @click="doWorkTime(workTime)">
+                                                                    <a-icon class="task-item" type="edit"/>
+                                                                </a>
+                                                                <a class="muted"
+                                                                   @click="deleteWorkTime(workTime, index)">
+                                                                    <a-icon class="task-item" type="delete"/>
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <a-tooltip placement="top">
+                                                        <a class="add-handler" @click="doWorkTime(false)">
+                                                            <a-icon type="plus" style="margin-right: 6px;"/>
+                                                            添加工时
+                                                        </a>
+                                                    </a-tooltip>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="component-mount">
+                                        <div class="field">
                                             <div class="field-left">
                                                 <a-icon type="paper-clip"/>
                                                 <span class="field-name">关联文件</span>
@@ -575,7 +692,9 @@
                                                                           icon="link"
                                                                           :src="item.sourceDetail.file_url"/>
                                                                 <div slot="title">
-                                                                    <a class="muted" target="_blank" :href="item.sourceDetail.file_url">{{ item.title }}</a>
+                                                                    <a class="muted" target="_blank"
+                                                                       :href="item.sourceDetail.file_url">{{ item.title
+                                                                        }}</a>
                                                                 </div>
                                                                 <div slot="description">
                                                                     <!--{{item.create_time}}-->
@@ -595,7 +714,8 @@
                                                                         <a-icon type="down"/>
                                                                     </a>
                                                                     <!--</a-tooltip>-->
-                                                                    <a-menu v-clipboard="item.sourceDetail.file_url" @click="doSource($event,item)"
+                                                                    <a-menu v-clipboard="item.sourceDetail.file_url"
+                                                                            @click="doSource($event,item)"
                                                                             class="field-right-menu"
                                                                             slot="overlay">
                                                                         <a-menu-item key="copy">
@@ -735,6 +855,117 @@
         </a-spin>
         <invite-project-member v-model="showInviteMember" :project-code="projectCodeCurrent"
                                v-if="showInviteMember"></invite-project-member>
+        <a-modal
+                class="work-time-modal"
+                v-model="workTimeDo.modalStatus"
+                :title="workTimeDo.modalTitle"
+                :bodyStyle="{paddingBottom:'1px'}"
+                @ok="workTimeHandleSubmit"
+                :confirmLoading="workTimeDo.confirmLoading"
+        >
+            <a-form
+                    layout="vertical"
+                    @submit.prevent="workTimeHandleSubmit"
+                    :form="workTimeDo.form">
+                <div>
+                    <div style="font-size: 15px;">登记任务</div>
+                    <div>{{task.name}}</div>
+                    <a-divider class="m-t-xs m-b-md"></a-divider>
+                </div>
+                <div class="work-time-stats">
+                    <div class="work-time-item">
+                        <div class="muted title">预估工时</div>
+                        <span class="work-time-num">{{task.work_time}}</span>
+                        <span>小时</span>
+                    </div>
+                    <div class="work-time-item">
+                        <div class="muted title">剩余工时</div>
+                        <span class="work-time-num">
+                            <template v-if="task.work_time - workTimeTotal < 0">0</template>
+                            <template v-else>{{task.work_time - workTimeTotal}}</template>
+                        </span>
+                        <span>小时</span>
+                    </div>
+                </div>
+                <a-row :gutter="24">
+                    <a-col :span="12">
+                        <a-form-item
+                                label="开始时间"
+                        >
+                            <a-date-picker
+                                    showTime
+                                    format="YYYY年MM月DD日 HH:mm"
+                                    allowClear
+                                    placeholder="请选择日期"
+                                    v-decorator="[
+                                'begin_time',
+                                {rules: [{ required: true, message: '请选择日期' }], validateTrigger: 'change',initialValue: moment()}
+                            ]"
+                            >
+                            </a-date-picker>
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                        <a-form-item
+                                label="消耗时间"
+                        >
+                            <a-input
+                                    type="text"
+                                    placeholder="请输入数字"
+                                    addonAfter="小时"
+                                    v-decorator="[
+                                'num',
+                                {rules: [{ required: true, message: '请输入消耗时间' }], validateTrigger: 'change'}
+                            ]"
+                            >
+                            </a-input>
+                        </a-form-item>
+                    </a-col>
+                    <a-col :span="24">
+                        <a-form-item
+                                label="工作内容"
+                        >
+                            <a-textarea
+                                    :rows="4"
+                                    type="text"
+                                    placeholder="在这期间做了什么"
+                                    v-decorator="[
+                                'content',
+                            ]"
+                            >
+                            </a-textarea>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+            </a-form>
+        </a-modal>
+        <a-modal
+                v-model="plainWorkTime.modalStatus"
+                :title="plainWorkTime.modalTitle"
+                :bodyStyle="{paddingBottom:'1px'}"
+                @ok="workTimePlainHandleSubmit"
+                :confirmLoading="plainWorkTime.confirmLoading"
+        >
+            <a-form
+                    layout="vertical"
+                    @submit.prevent="workTimePlainHandleSubmit"
+                    :form="plainWorkTime.form">
+                <a-form-item
+                        label=""
+                >
+                    <a-input
+                            type="text"
+                            placeholder="请输入数字"
+                            addonAfter="小时"
+                            v-decorator="[
+                                'work_time',
+                                {rules: [{ required: true, message: '请输入预估工时' }], validateTrigger: 'change'}
+                            ]"
+                    >
+                    </a-input>
+                </a-form-item>
+            </a-form>
+        </a-modal>
     </div>
 </template>
 
@@ -756,7 +987,15 @@
     import {notice} from "@/assets/js/notice";
     import {relativelyTaskTime, relativelyTime} from "@/assets/js/dateTime";
     import {checkResponse} from "../../assets/js/utils";
-    import {setPrivate, setTag, taskSources} from "../../api/task";
+    import {
+        _taskWorkTimeList, delTaskWorkTime,
+        editTaskWorkTime,
+        saveTaskWorkTime,
+        setPrivate,
+        setTag,
+        taskSources
+    } from "../../api/task";
+    import ATextarea from "ant-design-vue/es/input/TextArea";
 
     let tokenList = getStore('tokenList', true);
     let authorization = '';
@@ -768,6 +1007,7 @@
     export default {
         name: "task-detail",
         components: {
+            ATextarea,
             editor,
             taskMemberMenu,
             taskTagMenu,
@@ -790,6 +1030,7 @@
         },
         data() {
             return {
+                moment,
                 loading: false,
                 code: this.taskCode,
                 projectCodeCurrent: '',
@@ -797,6 +1038,8 @@
                 taskLogList: [],
                 taskLogTotal: 0,
                 taskMemberList: [],
+                workTimeList: [],
+                workTimeTotal: [],
 
                 /*任务菜单*/
                 visibleTaskMenu: false,
@@ -813,6 +1056,7 @@
 
                 /*日期*/
                 showEditName: false,
+                showBeginTime: false,
                 showEndTime: false,
 
                 /*备注*/
@@ -857,14 +1101,29 @@
                 hideShowMore: false,
 
                 /*评论*/
-                comment: ''
+                comment: '',
+
+                /*工时*/
+                workTimeDo: {
+                    form: this.$form.createForm(this),
+                    info: null,
+                    modalTitle: '登记工时记录',
+                    modalStatus: false,
+                    confirmLoading: false,
+                },
+                plainWorkTime: {
+                    form: this.$form.createForm(this),
+                    modalTitle: '设置预估工时',
+                    modalStatus: false,
+                    confirmLoading: false,
+                }
             }
         },
         computed: {
             ...mapState({
                 userInfo: state => state.userInfo,
                 uploader: state => state.common.uploader,
-
+                socketAction: state => state.socketAction,
             }),
             childTaskDoneNum() {
                 const list = this.childTaskList.filter(item => item.done == 1);
@@ -906,6 +1165,14 @@
             },
             taskLogType() {
                 this.getTaskLog();
+            },
+            socketAction(val) {
+                if (val.action === 'organization:task') {
+                    const data = val.data.data;
+                    if (data.taskCode == this.code) {
+                        this.init(null, false);
+                    }
+                }
             },
             uploader: {
                 handler(newVal, oldVal) {
@@ -949,15 +1216,18 @@
             }
         },
         methods: {
-            init(code) {
+            init(code = null, loading = true) {
                 if (code) {
                     this.code = code;//子任务
                 }
-                this.loading = true;
+                if (loading) {
+                    this.loading = true;
+                }
                 this.clearMemberMenu();
                 this.getTask();
                 this.getChildTasks();
                 this.getTaskMembers();
+                this.getTaskWorkTimeList();
             },
             detailClose() {
                 this.$emit('close', this.task);
@@ -970,6 +1240,7 @@
                 this.showChildTask = false;
             },
             getTask() {
+                this.$store.commit('viewRefresh');
                 this.clearMemberMenu();
                 read(this.code).then((res) => {
                     this.getTaskLog();
@@ -985,7 +1256,14 @@
                         this.task.end_time = moment(this.task.end_time);
                     }
                     this.task.end_time_format = relativelyTaskTime(this.task.end_time, true);
-
+                    if (!this.task.begin_time) {
+                        this.task.setBeginTime = false;
+                        this.task.begin_time = moment(moment().format('YYYY-MM-DD') + ' 18:00');
+                    } else {
+                        this.task.setBeginTime = true;
+                        this.task.begin_time = moment(this.task.begin_time);
+                    }
+                    this.task.begin_time_format = relativelyTaskTime(this.task.begin_time, true);
                     this.initContent(this.task.description);
                     if (this.task.executor) {
                         this.childExecutor = this.task.executor;
@@ -1022,6 +1300,18 @@
                 this.showMoreTaskLog = 1;
                 this.hideShowMore = true;
                 this.getTaskLog();
+            },
+            getTaskWorkTimeList() {
+                _taskWorkTimeList({taskCode: this.code}).then(res => {
+                    this.workTimeList = res.data;
+                    let total = 0;
+                    if (res.data) {
+                        res.data.forEach(v => {
+                            total += Number(v.num);
+                        });
+                        this.workTimeTotal = total;
+                    }
+                })
             },
             getTaskMembers() {
                 this.clearMemberMenu();
@@ -1187,6 +1477,19 @@
                     this.getChildTasks();
                 });
             },
+            doBeginTime(setBeginTime = false, showBeginTime = false) {
+                this.task.setBeginTime = setBeginTime;
+                this.showBeginTime = showBeginTime;
+                let beginTime = '';
+                if (setBeginTime) {
+                    beginTime = moment(this.task.begin_time).format('YYYY-MM-DD HH:mm');
+                    this.task.begin_time_format = moment(this.task.begin_time).format('MM月DD日 HH:mm');
+                } else {
+                    beginTime = '';
+                }
+                this.editTask({begin_time: beginTime});
+
+            },
             doEndTime(setEndTime = false, showEndTime = false) {
                 this.task.setEndTime = setEndTime;
                 this.showEndTime = showEndTime;
@@ -1347,6 +1650,96 @@
                 setTag({taskCode: this.task.code, tagCode: tag.code}).then(() => {
                     this.task.tags.splice(index, 1);
                 });
+            },
+            doPlainWorkTime() {
+                let app = this;
+                this.plainWorkTime.modalStatus = true;
+                this.$nextTick(function () {
+                    app.plainWorkTime.form.setFieldsValue({
+                        work_time: app.task.work_time,
+                    });
+                })
+            },
+            doWorkTime(workTime = false) {
+                let app = this;
+                this.workTimeDo.modalStatus = true;
+                if (workTime) {
+                    this.workTimeDo.info = workTime;
+                    this.$nextTick(function () {
+                        app.workTimeDo.form.setFieldsValue({
+                            num: workTime.num,
+                            begin_time: moment(workTime.begin_time),
+                            content: workTime.content,
+                        });
+                    })
+                } else {
+                    this.workTimeDo.form.resetFields();
+                    this.workTimeDo.info = null;
+                }
+            },
+            deleteWorkTime(workTime, index) {
+                let app = this;
+                this.$confirm({
+                    title: '删除工时记录',
+                    content: `确定要删除工时记录吗？`,
+                    okText: '确定',
+                    okType: 'danger',
+                    cancelText: '再想想',
+                    onOk() {
+                        delTaskWorkTime({code: workTime.code}).then((res) => {
+                            if (checkResponse(res)) {
+                                app.workTimeList.splice(index, 1);
+                                app.workTimeTotal -= workTime.num;
+                            }
+                        });
+                        return Promise.resolve();
+                    }
+                });
+            },
+            workTimePlainHandleSubmit() {
+                let app = this;
+                this.plainWorkTime.form.validateFields(
+                    (err, values) => {
+                        if (!err) {
+                            app.editTask({work_time: values.work_time});
+                            app.plainWorkTime.modalStatus = false;
+                        }
+                    }
+                );
+            },
+            workTimeHandleSubmit() {
+                let app = this;
+                this.workTimeDo.form.validateFields(
+                    (err, values) => {
+                        if (!err) {
+                            app.workTimeDo.confirmLoading = true;
+                            let data = {
+                                beginTime: values.begin_time.format('YYYY-MM-DD HH:mm'),
+                                num: values.num,
+                                content: values.content,
+                                taskCode: app.code,
+                            };
+                            if (app.workTimeDo.info) {
+                                data.code = app.workTimeDo.info.code;
+                                editTaskWorkTime(data).then(res => {
+                                    app.workTimeDo.confirmLoading = false;
+                                    if (checkResponse(res)) {
+                                        app.workTimeDo.modalStatus = false;
+                                        app.getTaskWorkTimeList();
+                                    }
+                                })
+                            } else {
+                                saveTaskWorkTime(data).then(res => {
+                                    app.workTimeDo.confirmLoading = false;
+                                    if (checkResponse(res)) {
+                                        app.workTimeDo.modalStatus = false;
+                                        app.getTaskWorkTimeList();
+                                    }
+                                });
+                            }
+                        }
+                    }
+                );
             },
             updateChildExecutor(member) {
                 this.visibleChildTaskMemberMenu = false;
@@ -1510,6 +1903,9 @@
                         &:hover {
                             background: #f5f5f5;
                         }
+                        &.hover-none{
+                            background: initial;
+                        }
 
                         .title-text {
                             line-height: 24px;
@@ -1563,6 +1959,10 @@
                                             display: inline-block;
                                         }
 
+                                        &.field-date {
+                                            display: flex;
+                                        }
+
                                         &.width-block {
                                             width: 100%;
 
@@ -1594,7 +1994,7 @@
                                             padding: 8px 0;
 
                                             .list-item {
-                                                padding: 4px 12px 4px 16px;
+                                                padding: 4px 12px 4px 5px;
                                                 display: flex;
                                                 align-items: center;
                                                 /*justify-content: space-between;*/
@@ -1618,6 +2018,10 @@
 
                                                     &:hover, &:focus {
                                                     }
+                                                }
+
+                                                .check-box-wrapper {
+                                                    margin-top: 0;
                                                 }
 
                                                 .task-item {
@@ -1791,6 +2195,28 @@
                         padding: 20px 20px 0 20px;
                         display: flex;
                     }
+                }
+            }
+        }
+    }
+
+    .work-time-modal {
+        .work-time-stats {
+            display: flex;
+            margin-bottom: 18px;
+
+            .work-time-item {
+                margin-right: 36px;
+
+                .title {
+                    font-size: 12px;
+                }
+
+                .work-time-num {
+                    font-size: 22px;
+                    font-weight: 500;
+                    margin-right: 5px;
+                    font-family: dinmedium;
                 }
             }
         }

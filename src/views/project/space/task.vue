@@ -1,5 +1,5 @@
 <template>
-    <div class="project-space-task">
+    <div class="project-space-task" :class="project.task_board_theme">
         <div class="project-navigation">
             <div class="project-nav-header">
                 <a-breadcrumb>
@@ -28,8 +28,9 @@
                                     @click="$router.push('/project/space/overview/' + project.code)">
                         概览</a>
                     </li>
-                    <li class=""><a class="app" data-app="build" @click="$router.push('/project/build/' + project_id)">
-                        版本 * </a>
+                    <li class=""><a class="app" data-app="build"
+                                    @click="$router.push('/project/space/features/' + project.code)">
+                        版本</a>
                     </li>
                 </ul>
             </section>
@@ -74,7 +75,7 @@
                                         <span>编辑任务列表</span>
                                     </template>
                                     <a href="javascript:void(0)" class="menu-toggler-title">
-                                        <a-icon type="down-circle" style="font-size: 18px;"/>
+                                        <a-icon type="ellipsis" style="font-size: 18px;"/>
                                     </a>
                                 </a-tooltip>
                                 <!--<div slot="overlay" class="task-popover-content">-->
@@ -134,9 +135,14 @@
                                                     <template slot="title">
                                                         <span v-if="task.hasUnDone" style="font-size: 12px;">子任务尚未全部完成，无法完成父任务</span>
                                                     </template>
-                                                    <a class="check-box"
+                                                    <div class="check-box-wrapper"
+                                                         @click.stop="taskDone(task.code,index,taskIndex,1)">
+                                                        <a-icon class="check-box" :class="{'disabled': task.hasUnDone}"
+                                                                type="border" :style="{fontSize:'16px'}"/>
+                                                    </div>
+                                                    <!--<a class="check-box"
                                                        :class="{'disabled': task.hasUnDone}"
-                                                       @click.stop="taskDone(task.code,index,taskIndex,1)"></a>
+                                                       @click.stop="taskDone(task.code,index,taskIndex,1)"></a>-->
                                                 </a-tooltip>
                                                 <div class="task-content-set open-detail">
                                                     <div class="task-content-wrapper">
@@ -255,10 +261,16 @@
                                                  @click.stop="taskDetail(task.code,index)"
                                             >
                                                 <div class="task-priority bg-priority-0"></div>
-                                                <a class="check-box"
+                                                <span class="check-box-wrapper"
+                                                      @click.stop="taskDone(task.code,index,taskIndex,0)">
+                                                       <a-icon class="check-box" type="check-square"
+                                                               :style="{fontSize:'16px'}"
+                                                               :class="{'disabled': task.hasUnDone}"/>
+                                                </span>
+                                                <!--<a class="check-box"
                                                    @click.stop="taskDone(task.code,index,taskIndex,0)">
                                                     <a-icon type="check"/>
-                                                </a>
+                                                </a>-->
                                                 <div class="task-content-set open-detail">
                                                     <div class="task-content-wrapper">
                                                         <div class="task-content">{{ task.name }}</div>
@@ -308,8 +320,8 @@
                     <header class="scrum-stage-header">
                         <div class="stage-name hinted" style="width: 100%">
                             <a class="muted" v-show="!showCreateStage" @click="showInputStrageName">
-                                <span class="ivu-icon ivu-icon-plus"></span>
-                                <span>新建任务列表...</span>
+                                <a-icon type="plus"/>
+                                <span class="m-l-xs">新建任务列表</span>
                             </a>
                             <div v-show="showCreateStage">
                                 <div>
@@ -346,6 +358,7 @@
 
             <router-view></router-view>
         </wrapper-content>
+        <!--编辑任务列表-->
         <a-modal
                 :width="360"
                 v-model="stageModal.modalStatus"
@@ -377,6 +390,7 @@
                 </a-form-item>
             </a-form>
         </a-modal>
+        <!--项目成员-->
         <a-drawer
                 wrapClassName="info-drawer"
                 title="项目成员"
@@ -424,6 +438,7 @@
                 </a-list>
             </div>
         </a-drawer>
+        <!--项目设置菜单-->
         <a-drawer
                 wrapClassName="info-drawer"
                 title="项目设置"
@@ -441,9 +456,9 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a>
+                        <a @click="taskTagModal.modalStatus = true">
                             <a-icon type="tags"/>
-                            标签 *
+                            标签
                         </a>
                     </li>
                     <li class="menu-item">
@@ -453,21 +468,35 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a>
+                        <a :href="downLoadUrl" target="_blank">
                             <a-icon type="copy"/>
-                            复制项目 *
+                            下载导入任务模板
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a>
-                            <a-icon type="login"/>
-                            导入任务 *
-                        </a>
+                        <a-upload name="file"
+                                  :showUploadList="false"
+                                  :action="uploadAction"
+                                  :beforeUpload="beforeUpload"
+                                  :data="{projectCode: code}"
+                                  :headers="headers"
+                                  @change="handleChange">
+                            <a class="text-default" :loading="uploadLoading" :disabled="uploadLoading">
+                                <a-icon type="upload" v-show="!uploadLoading"/>
+                                上传文件导入任务
+                            </a>
+                        </a-upload>
                     </li>
                     <li class="menu-item">
                         <a>
                             <a-icon type="logout"/>
                             导出任务 *
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a>
+                            <a-icon type="copy"/>
+                            复制项目 *
                         </a>
                     </li>
                     <li class="menu-item">
@@ -480,7 +509,9 @@
 
             </div>
         </a-drawer>
+        <!--项目设置-->
         <a-modal
+                destroyOnClose
                 class="project-config-modal"
                 :width="800"
                 v-model="projectModal.modalStatus"
@@ -489,6 +520,7 @@
         >
             <project-config :code="code" @update="updateProject"></project-config>
         </a-modal>
+        <!--回收站-->
         <a-modal
                 class="recycle-bin-modal"
                 :width="800"
@@ -498,6 +530,17 @@
         >
             <recycle-bin v-if="recycleModal.modalStatus" :code="code" @update="init"></recycle-bin>
         </a-modal>
+        <!--任务标签-->
+        <a-modal
+                class="task-tag-modal"
+                :width="800"
+                v-model="taskTagModal.modalStatus"
+                :title="taskTagModal.modalTitle"
+                :footer="null"
+        >
+            <task-tag v-if="taskTagModal.modalStatus" :code="code" @update="init"></task-tag>
+        </a-modal>
+        <!--设置任务执行者-->
         <a-modal
                 class="invite-project-member"
                 :width="360"
@@ -544,13 +587,14 @@
     import inviteProjectMember from '@/components/project/inviteProjectMember'
     import projectConfig from '@/components/project/projectConfig'
     import RecycleBin from '@/components/project/recycleBin'
+    import TaskTag from '@/components/project/taskTag'
 
     import {list as getTaskStages, sort, tasks as getTasks} from "../../../api/taskStages";
     import {read as getProject} from "../../../api/project";
     import {inviteMember, list as getProjectMembers, removeMember} from "../../../api/projectMember";
     import {save as createTask, taskDone, sort as sortTask, recycleBatch, batchAssignTask} from "../../../api/task";
     import {save as createState, edit as editStage, del as delStage} from "../../../api/taskStages";
-    import {checkResponse} from "../../../assets/js/utils";
+    import {checkResponse, getApiUrl, getAuthorization, getUploadUrl} from "../../../assets/js/utils";
     import {formatTaskTime} from "../../../assets/js/dateTime";
     import {collect} from "../../../api/projectCollect";
     import {notice} from "../../../assets/js/notice";
@@ -559,6 +603,7 @@
         name: "project-space-task",
         components: {
             RecycleBin,
+            TaskTag,
             draggable,
             inviteProjectMember,
             projectConfig
@@ -589,7 +634,7 @@
 
                 code: this.$route.params.code,
                 loading: true,
-                project: {},
+                project: {task_board_theme: 'simple'},
                 stageName: '',
                 task: {}, //当前任务
                 taskStages: [], //任务列表
@@ -624,6 +669,11 @@
                     visible: false,
                 },
 
+
+                downLoadUrl: getUploadUrl('project/task/_downloadTemplate'),
+                uploadLoading: false,
+                uploadAction: getApiUrl('project/task/uploadFile'),
+
                 /*项目设置*/
                 projectModal: {
                     modalStatus: false,
@@ -633,6 +683,11 @@
                 recycleModal: {
                     modalStatus: false,
                     modalTitle: '查看回收站',
+                },
+                /*任务标签*/
+                taskTagModal: {
+                    modalStatus: false,
+                    modalTitle: '任务标签',
                 },
 
                 /*项目成员*/
@@ -646,8 +701,13 @@
         },
         computed: {
             ...mapState({
-                userInfo: state => state.userInfo
+                userInfo: state => state.userInfo,
+                viewRefresh: state => state.common.viewRefresh,
+                socketAction: state => state.socketAction,
             }),
+            headers() {
+                return getAuthorization();
+            },
             scrollOps() {
                 return {
                     rail: {
@@ -664,6 +724,7 @@
             $route(to, from) {
                 if (from.name == 'taskdetail') {
                     const stageIndex = from.query.from;
+                    // this.getTaskStages(false);
                     if (stageIndex != undefined) {
                         getTasks({stageCode: this.taskStages[stageIndex].code}).then((res) => {
                             this.taskStages[stageIndex].tasksLoading = false;
@@ -680,6 +741,18 @@
                         });
                     }
                 }
+            },
+            socketAction(val) {
+                if (val.action === 'organization:task') {
+                    const data = val.data.data;
+                    if (data.projectCode == this.code) {
+                        this.getTaskStages(false);
+                    }
+                }
+            },
+            viewRefresh() {
+                console.log('viewRefresh');
+                // this.getTaskStages(false);
             },
             inviteMemberDraw: {
                 handler(newVal) {
@@ -778,12 +851,24 @@
                     this.projectMembersCopy = res.data.list;
                 });
             },
-            getTaskStages() {
-                getTaskStages({projectCode: this.code, pageSize: 30}).then((res) => {
-                    this.taskStages = res.data.list;
-                    if (this.taskStages) {
-                        this.taskStages.forEach((v) => {
-                            getTasks({stageCode: v.code}).then((res) => {
+            getTaskStages(showLoading = true) {
+                let app = this;
+                getTaskStages({projectCode: this.code, pageSize: 30}).then(async (res) => {
+                    let taskStages = [];
+                    if (!showLoading) {
+                        res.data.list.forEach((v) => {
+                            v.tasksLoading = false;
+                            taskStages.push(v);
+                        });
+                        // this.taskStages = taskStages;
+                    } else {
+                        //提前赋值，展现loading
+                        this.taskStages = taskStages = res.data.list;
+                    }
+                    if (taskStages) {
+                        for (const v of taskStages) {
+                            await getTasks({stageCode: v.code}).then((res) => {
+                                console.log(0);
                                 let canNotReadCount = 0;
                                 res.data.forEach((task) => {
                                     if (!task.canRead) {
@@ -799,8 +884,12 @@
                                 v.tasksLoading = false;
                                 v.tasks = res.data;
                             })
-                        })
+                        }
                     }
+                    if (!showLoading) {
+                        app.taskStages = taskStages;
+                    }
+                    console.log(11);
                 })
             },
             filterTask(tasks, done) {
@@ -905,33 +994,35 @@
                 if (task.hasUnDone) {
                     return false;
                 }
+                task.done = done;
+                if (done) {
+                    unDoneTasks.splice(taskIndex, 1);
+                    doneTasks.push(task);
+                    doneTasks = doneTasks.sort(function (a, b) {
+                        if (a.sort === b.sort) {
+                            return a.id_num - b.id_num;
+                        } else {
+                            return a.sort - b.sort;
+                        }
+                    });
+                } else {
+                    doneTasks.splice(taskIndex, 1);
+                    unDoneTasks.push(task);
+                    unDoneTasks = unDoneTasks.sort(function (a, b) {
+                        if (a.sort === b.sort) {
+                            return a.id_num - b.id_num;
+                        } else {
+                            return a.sort - b.sort;
+                        }
+                    });
+                }
                 taskDone(taskCode, done).then((res) => {
                     const result = checkResponse(res);
                     if (!result) {
                         return false;
                     }
-                    task.done = done;
-                    if (done) {
-                        unDoneTasks.splice(taskIndex, 1);
-                        doneTasks.push(task);
-                        doneTasks = doneTasks.sort(function (a, b) {
-                            if (a.sort === b.sort) {
-                                return a.id_num - b.id_num;
-                            } else {
-                                return a.sort - b.sort;
-                            }
-                        });
-                    } else {
-                        doneTasks.splice(taskIndex, 1);
-                        unDoneTasks.push(task);
-                        unDoneTasks = unDoneTasks.sort(function (a, b) {
-                            if (a.sort === b.sort) {
-                                return a.id_num - b.id_num;
-                            } else {
-                                return a.sort - b.sort;
-                            }
-                        });
-                    }
+                    //可能会触发工作流，所以全部刷新
+                    this.getTaskStages(false);
                 });
             },
             showInputStrageName() {
@@ -967,12 +1058,15 @@
                             okType: 'danger',
                             cancelText: `再想想`,
                             onOk() {
+                                app.taskStages[stageIndex].tasks = [];
+                                app.$set(app.taskStages[stageIndex], 'doneTasks', []);
                                 recycleBatch({stageCode: stageCode}).then(res => {
                                     const result = checkResponse(res);
                                     if (!result) {
                                         return false;
                                     }
-                                    app.$set(app.taskStages[stageIndex], 'tasks', []);
+                                    app.$set(app.taskStages[stageIndex], 'doneTasks', []);
+                                    app.$set(app.taskStages[stageIndex], 'unDoneTasks', []);
                                 });
                                 return Promise.resolve();
                             }
@@ -1115,7 +1209,9 @@
                 for (let i = 0, len = event.to.children.length; i < len; i++) {
                     codes += ',' + event.to.children[i].getAttribute('id');
                 }
-                sortTask({stageCode: toStageCode, codes: codes.substr(1)});
+                sortTask({stageCode: toStageCode, codes: codes.substr(1)}).then(res => {
+                    this.getTaskStages(false);
+                });
             },
             handleResize(vertical, stageIndex) {
                 if (vertical.barSize) {
@@ -1184,6 +1280,33 @@
                     }
                     this.project.collected = !this.project.collected;
                 })
+            },
+            handleChange(info) {
+                if (info.file.status === 'uploading') {
+                    notice(`正在导入，请稍后...`, 'message', 'loading', 0);
+                    this.uploadLoading = true;
+                    return
+                }
+                if (info.file.status === 'done') {
+                    console.log(info);
+                    this.uploadLoading = false;
+                    if (checkResponse(info.file.response, true)) {
+                        const count = info.file.response.data;
+                        if (count) {
+                            notice(`成功导入${count}个任务`, 'message', 'success');
+                        } else {
+                            notice(`没有成功导入任何任务`, 'message', 'warning');
+                        }
+                        this.getTaskStages(false);
+                    }
+                }
+            },
+            beforeUpload(file) {
+                const isLt2M = file.size / 1024 / 1024 < 2;
+                if (!isLt2M) {
+                    this.$message.error('文件不能超过2MB!')
+                }
+                return isLt2M
             },
         }
     }

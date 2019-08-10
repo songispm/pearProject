@@ -1,5 +1,5 @@
 <template>
-    <div class="project-space-files">
+    <div class="project-space-files" :class="project.task_board_theme">
         <div class="project-navigation">
             <div class="project-nav-header">
                 <a-breadcrumb>
@@ -31,8 +31,8 @@
                         概览</a>
                     </li>
                     <li class=""><a class="app" data-app="build"
-                                    @click="$router.push('/project/build/' + project_id)">
-                        版本 * </a>
+                                    @click="$router.push('/project/space/features/' + project.code)">
+                        版本</a>
                     </li>
                 </ul>
             </section>
@@ -178,7 +178,7 @@
                 loading: true,
                 showLoadingMore: false,
                 loadingMore: false,
-                project: {},
+                project: {task_board_theme: 'simple'},
                 currentFileIndex: {},
                 files: [],
             }

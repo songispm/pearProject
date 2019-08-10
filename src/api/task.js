@@ -3,6 +3,9 @@ import $http from '@/assets/js/http'
 export function list(data) {
     return $http.post('project/task', data);
 }
+export function getListByTaskTag(data) {
+    return $http.post('project/task/getListByTaskTag', data);
+}
 
 export function selfList(data) {
     return $http.post('project/task/selfList', data);
@@ -89,5 +92,17 @@ export function logs(data) {
 
 export function getLogBySelfProject(data) {
     return $http.post('project/project/getLogBySelfProject', data);
+}
+export function _taskWorkTimeList(data) {
+    return $http.post('project/task/_taskWorkTimeList', data);
+}
+export function saveTaskWorkTime(data) {
+    return $http.post('project/task/saveTaskWorkTime', data);
+}
+export function editTaskWorkTime(data) {
+    return $http.post('project/task/editTaskWorkTime', data);
+}
+export function delTaskWorkTime(data) {
+    return $http.post('project/task/delTaskWorkTime', data);
 }
 

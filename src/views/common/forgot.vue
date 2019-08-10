@@ -1,30 +1,8 @@
 <template>
-    <div class="inviteFromLink" style="height: 100%;">
+    <div class="forgot" style="height: 100%;">
         <div class="content">
             <a-spin :spinning="loading">
-                <a-card v-if="inviteLink" :title="`来自 ${inviteLink.member.name} 的邀请`">
-                    <div class="header">
-                    <span>
-                        {{inviteLink.member.name}} 邀请你
-                        <span v-if="inviteLink.invite_type == 'project'">加入项目「{{inviteLink.sourceDetail.name}}」</span>
-                        <span v-if="inviteLink.invite_type == 'organization'">加入组织「{{inviteLink.sourceDetail.name}}」</span>
-
-                    </span>
-                    </div>
-                    <div class="member-info">
-                        <div class="avatar">
-                            <a-avatar size="large" :src="inviteLink.member.avatar"></a-avatar>
-                        </div>
-                        <div class="info">
-                            <p>{{inviteLink.member.name}}</p>
-                            <p class="muted">{{inviteLink.member.email}}</p>
-                        </div>
-                    </div>
-                    <a-button type="primary" block size="large" class="middle-btn" @click="acceptInvite">
-                        <span v-if="inviteLink.invite_type == 'project'">加入项目</span>
-                        <span v-if="inviteLink.invite_type == 'organization'">加入组织</span>
-                    </a-button>
-                </a-card>
+                ddd
             </a-spin>
         </div>
     </div>
@@ -88,7 +66,7 @@
     }
 </script>
 <style lang="less">
-    .inviteFromLink {
+    .forgot {
         .content {
             width: 600px;
             margin: 50px auto;
