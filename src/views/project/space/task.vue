@@ -4,9 +4,13 @@
             <div class="project-nav-header">
                 <a-breadcrumb>
                     <a-breadcrumb-item>
-                        <a-tooltip :mouseEnterDelay="0.3" :title="project.name">
-                            <span class="nav-title">{{ project.name }}</span>
-                        </a-tooltip>
+                        <router-link to="/home">
+                            <a-icon type="home"/>
+                            首页
+                        </router-link>
+                    </a-breadcrumb-item>
+                    <a-breadcrumb-item>
+                        <project-select class="nav-title" style="display: inline-block" :code="code"></project-select>
                         <span class="actions">
                              <a-tooltip :mouseEnterDelay="0.3" :title="project.collected ? '取消收藏' : '加入收藏'"
                                         @click="collectProject">
@@ -584,6 +588,7 @@
     import _ from 'lodash'
     import moment from 'moment'
     import draggable from 'vuedraggable'
+    import projectSelect from '@/components/project/projectSelect'
     import inviteProjectMember from '@/components/project/inviteProjectMember'
     import projectConfig from '@/components/project/projectConfig'
     import RecycleBin from '@/components/project/recycleBin'
@@ -605,6 +610,7 @@
             RecycleBin,
             TaskTag,
             draggable,
+            projectSelect,
             inviteProjectMember,
             projectConfig
         },
@@ -722,6 +728,13 @@
         },
         watch: {
             $route(to, from) {
+                if (this.code != to.params.code) {
+                    this.code = to.params.code;
+                    this.defaultExecutor = this.userInfo;
+                    this.getProject();
+                    this.getProjectMembers();
+                    this.init();
+                }
                 if (from.name == 'taskdetail') {
                     const stageIndex = from.query.from;
                     // this.getTaskStages(false);
@@ -853,7 +866,7 @@
             },
             getTaskStages(showLoading = true) {
                 let app = this;
-                getTaskStages({projectCode: this.code, pageSize: 30}).then(async (res) => {
+                getTaskStages({projectCode: this.code, pageSize: 30}).then((res) => {
                     let taskStages = [];
                     if (!showLoading) {
                         res.data.list.forEach((v) => {
@@ -866,9 +879,8 @@
                         this.taskStages = taskStages = res.data.list;
                     }
                     if (taskStages) {
-                        for (const v of taskStages) {
-                            await getTasks({stageCode: v.code}).then((res) => {
-                                console.log(0);
+                        taskStages.forEach((v, k) => {
+                            getTasks({stageCode: v.code}).then((res) => {
                                 let canNotReadCount = 0;
                                 res.data.forEach((task) => {
                                     if (!task.canRead) {
@@ -883,13 +895,12 @@
                                 v.canNotReadCount = canNotReadCount;
                                 v.tasksLoading = false;
                                 v.tasks = res.data;
+                                if (!showLoading) {
+                                    app.$set(app.taskStages, k, v);
+                                }
                             })
-                        }
+                        });
                     }
-                    if (!showLoading) {
-                        app.taskStages = taskStages;
-                    }
-                    console.log(11);
                 })
             },
             filterTask(tasks, done) {

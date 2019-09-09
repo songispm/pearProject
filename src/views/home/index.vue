@@ -63,7 +63,8 @@
                                     <a-card-meta>
                                         <div slot="title" class="card-title">
                                             <a-avatar size="small" :src="item.cover"/>
-                                            <router-link :to="'/project/space/task/' + item.code">{{ item.name }}
+                                            <router-link :to="'/project/space/task/' + item.code">
+                                                <a-icon type="star" theme="filled" style="color: #ffaf38;margin-right: 6px;" v-show="item.collected"/>{{ item.name }}
                                             </router-link>
                                         </div>
                                         <div slot="description" class="card-description">
@@ -176,7 +177,8 @@
                         <div class="members">
                             <a-row>
                                 <a-col :span="12" v-for="(item, index) in accounts" :key="index">
-                                    <a>
+                                    <a @click="routerLink('/members/profile/' + item.membar_account_code + '?key=3')" style="display: flex;align-items: center"
+                                    >
                                         <a-avatar size="small" :src="item.avatar"/>
                                         <span class="member">{{ item.name }}</span>
                                     </a>
@@ -481,7 +483,7 @@
                         line-height: 24px;
                         max-width: 100px;
                         vertical-align: top;
-                        margin-left: 12px;
+                        margin-left: 6px;
                         transition: all 0.3s;
                         display: inline-block;
                     }
