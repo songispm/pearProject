@@ -6,7 +6,7 @@ function resolve(dir) {
 
 const HOST = '127.0.0.1';
 const PORT = '8045';
-const DEV_URL = process.env.NODE_ENV === 'production' ? 'https://api.thispm.com' : 'http://127.0.0.1/pearProjectApi';
+const DEV_URL = process.env.NODE_ENV === 'production' ? '//api.thispm.com' : 'http://127.0.0.1/pearProjectApi';
 module.exports = {
     publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
     productionSourceMap: false,
