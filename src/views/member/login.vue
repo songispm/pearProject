@@ -101,7 +101,7 @@
             <div class="user-login-other">
                 <span>其他登录方式</span>
                 <a-tooltip :mouseEnterDelay="0.3"
-                           title="现已支持">
+                           title="钉钉登录">
                     <a @click="dingTalkOauth">
                         <a-icon class="item-icon" type="dingding"/>
                     </a>
@@ -294,7 +294,7 @@
                     }
                 })
             },
-            loginSuccess(res) {
+            loginSuccess(res, org) {
                 setTimeout(() => {
                     const menu = getStore('menu', true);
                     if (menu) {
@@ -314,7 +314,12 @@
                         });
                         this.loginBtn = false;
                         this.$router.addRoutes(routes);
-                        let redirect = this.$route.query.redirect || config.HOME_PAGE;
+                        let redirect = this.$route.query.redirect || config.HOME_PAGE + '/' + org.code;
+                        if (redirect == config.HOME_PAGE) {
+                            redirect = config.HOME_PAGE + '/' + org.code
+                        }
+                        console.log('redirect');
+                        console.log(redirect);
                         this.$router.push({
                             path: redirect
                         });
@@ -377,7 +382,7 @@
                     }
                     app.$store.dispatch('setCurrentOrganization', currentOrganization);
                     app.$store.dispatch('GET_MENU').then(() => {
-                        app.loginSuccess(res);
+                        app.loginSuccess(res, currentOrganization);
                     });
                 } else {
                     app.oauthLoading = false;
