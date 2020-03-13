@@ -4,10 +4,10 @@
             <div class="project-nav-header">
                 <a-breadcrumb>
                     <a-breadcrumb-item>
-                        <router-link to="/home">
+                        <a @click="toHome">
                             <a-icon type="home"/>
                             首页
-                        </router-link>
+                        </a>
                     </a-breadcrumb-item>
                     <a-breadcrumb-item>
                         <project-select class="nav-title" style="display: inline-block" :code="code"></project-select>
@@ -26,22 +26,21 @@
                 <ul class="nav-wrapper nav nav-underscore pull-left">
                     <li class="actives"><a class="app" data-app="tasks">任务</a></li>
                     <li class=""><a class="app" data-app="works"
-                                    @click="$router.push('/project/space/files/' + project.code)">
+                                    @click="$router.push('/project/space/files/' + code)">
                         文件</a>
                     <li class=""><a class="app" data-app="build"
-                                    @click="$router.push('/project/space/overview/' + project.code)">
+                                    @click="$router.push('/project/space/overview/' + code)">
                         概览</a>
                     </li>
                     <li class=""><a class="app" data-app="build"
-                                    @click="$router.push('/project/space/features/' + project.code)">
+                                    @click="$router.push('/project/space/features/' + code)">
                         版本</a>
                     </li>
                 </ul>
             </section>
             <div class="project-nav-footer">
-                <a class="footer-item"
-                   @click="changeViewMode">
-                    <a-icon type="menu"></a-icon>
+                <a class="footer-item" @click="visibleDraw('taskSearch')">
+                    <a-icon type="search"></a-icon>
                     <span>{{table_modal ?' 看板视图':' 列表视图'}}</span>
                 </a>
                 <a class="footer-item" :class="{active:slideMenuKey == 'member'}" @click="visibleDraw('member')">
@@ -164,6 +163,7 @@
                                                     </div>
                                                     <div class="task-info-wrapper clearfix">
                                                         <div class="task-infos">
+                                                            <span class="icon-wrapper" :style="{color: getStatusColor(task.status), fontSize: '12px'}" v-if="task.status">{{task.statusText}}</span>
                                                        <span class="label" :class="showTimeLabel(task.end_time)"
                                                              v-if="task.end_time">
                                                             <span :title="task.end_time">
@@ -576,6 +576,16 @@
             </div>
         </a-modal>
 
+        <a-drawer
+                wrapClassName="info-drawer task-search"
+                title="任务筛选"
+                width=350
+                placement="right"
+                @close="taskSearch.visible = false"
+                :visible="taskSearch.visible"
+        >
+            <task-search :project-code="code" @search="taskSearchAction"></task-search>
+        </a-drawer>
         <invite-project-member v-model="showInviteMember" :project-code="code"
                                v-if="showInviteMember"></invite-project-member>
     </div>
@@ -587,12 +597,14 @@
     import {mapState} from 'vuex'
     import _ from 'lodash'
     import moment from 'moment'
+    import {COMMON} from '../../../const/common'
     import draggable from 'vuedraggable'
     import projectSelect from '@/components/project/projectSelect'
     import inviteProjectMember from '@/components/project/inviteProjectMember'
     import projectConfig from '@/components/project/projectConfig'
     import RecycleBin from '@/components/project/recycleBin'
     import TaskTag from '@/components/project/taskTag'
+    import TaskSearch from '@/components/project/taskSearch'
 
     import {list as getTaskStages, sort, tasks as getTasks} from "../../../api/taskStages";
     import {read as getProject} from "../../../api/project";
@@ -611,6 +623,7 @@
             TaskTag,
             draggable,
             projectSelect,
+            TaskSearch,
             inviteProjectMember,
             projectConfig
         },
@@ -643,6 +656,7 @@
                 project: {task_board_theme: 'simple'},
                 stageName: '',
                 task: {}, //当前任务
+                taskStatusList: COMMON.TASK_STATUS,
                 taskStages: [], //任务列表
                 defaultExecutor: {},//默认执行人
                 projectMembers: [], //项目成员列表
@@ -652,6 +666,8 @@
 
                 preCode: '',
                 nextCode: '',
+
+                taskSearchParams: {},
 
                 stageKeys: [],
                 stageModal: {
@@ -672,6 +688,9 @@
                     list: [],
                 },
                 configDraw: {
+                    visible: false,
+                },
+                taskSearch: {
                     visible: false,
                 },
 
@@ -739,7 +758,9 @@
                     const stageIndex = from.query.from;
                     // this.getTaskStages(false);
                     if (stageIndex != undefined) {
-                        getTasks({stageCode: this.taskStages[stageIndex].code}).then((res) => {
+                        let searchParams = this.taskSearchParams;
+                        let params = Object.assign({stageCode:this.taskStages[stageIndex].code}, searchParams);
+                        getTasks(params).then((res) => {
                             this.taskStages[stageIndex].tasksLoading = false;
                             this.taskStages[stageIndex].tasks = res.data;
                             let doneTasks = this.taskStages[stageIndex].doneTasks = [];
@@ -879,8 +900,12 @@
                         this.taskStages = taskStages = res.data.list;
                     }
                     if (taskStages) {
+                        let searchParams = app.taskSearchParams;
+                        let params = {};
                         taskStages.forEach((v, k) => {
-                            getTasks({stageCode: v.code}).then((res) => {
+                            params = {stageCode: v.code};
+                            params = Object.assign(params, searchParams);
+                            getTasks(params).then((res) => {
                                 let canNotReadCount = 0;
                                 res.data.forEach((task) => {
                                     if (!task.canRead) {
@@ -905,6 +930,11 @@
             },
             filterTask(tasks, done) {
                 return tasks.filter(item => item.done == done);
+            },
+            taskSearchAction(value) {
+                console.log(value);
+                this.taskSearchParams = value;
+                this.getTaskStages();
             },
             //显示添加任务卡片
             showTaskCard(index = false, show = true) {
@@ -1233,10 +1263,16 @@
             visibleDraw(type) {
                 if (type == 'member') {
                     this.configDraw.visible = false;
+                    this.taskSearch.visible = false;
                     this.inviteMemberDraw.visible = !this.inviteMemberDraw.visible;
 
+                } else if (type == 'taskSearch') {
+                    this.taskSearch.visible = !this.taskSearch.visible;
+                    this.configDraw.visible = false;
+                    this.inviteMemberDraw.visible = false;
                 } else {
                     this.inviteMemberDraw.visible = false;
+                    this.taskSearch.visible = false;
                     this.configDraw.visible = !this.configDraw.visible;
                 }
             },
@@ -1319,6 +1355,13 @@
                 }
                 return isLt2M
             },
+            getStatusColor(status) {
+                const statusInfo = this.taskStatusList.find(item => item.id == status);
+                if (statusInfo) {
+                    return statusInfo.color;
+                }
+                return '';
+            }
         }
     }
 </script>
@@ -1343,11 +1386,11 @@
         }
 
         .ant-drawer-content {
-            background-color: #f7f7f7;
+            /*background-color: #f7f7f7;*/
         }
 
         .ant-drawer-header {
-            background-color: #f7f7f7;
+            /*background-color: #f7f7f7;*/
             text-align: center;
         }
 
